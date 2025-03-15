@@ -19,10 +19,15 @@ export const useChatStore = defineStore(
         title: '默认对话',
         history: [],
       },
+      {
+        isSending: false,
+        title: '默认对话',
+        history: [],
+      },
     ])
     // 添加聊天函数
     const addNewChat = () => {
-      allChats.value.push({
+      allChats.value.unshift({
         isSending: false,
         // 此处 title 需更换, 注意
         title: '新对话',

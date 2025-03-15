@@ -1,3 +1,12 @@
+<script lang="ts" setup>
+import { UploadFilled, Picture } from '@element-plus/icons-vue';
+import { ref } from 'vue';
+
+const color1 = ref('rgba(0, 0, 0, 0.3)');
+const color2 = ref('rgba(0, 0, 0, 0.3)');
+const color3 = ref('rgba(0, 0, 0, 0.5)');
+</script>
+
 <template>
   <el-form>
     <h1 style="text-align: center;">背景修改</h1>
@@ -96,15 +105,6 @@
     </div>
   </el-form>
 </template>
-
-<script lang="ts" setup>
-import { UploadFilled, Picture } from '@element-plus/icons-vue';
-import { ref } from 'vue';
-
-const color1 = ref('rgba(0, 0, 0, 0.3)');
-const color2 = ref('rgba(0, 0, 0, 0.3)');
-const color3 = ref('rgba(0, 0, 0, 0.5)');
-</script>
 
 <style scoped>
 .el-form {
