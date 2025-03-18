@@ -8,7 +8,7 @@ import { ElMessage } from 'element-plus'
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/',
+    path: '/menu',
     name: 'menu',
     component: MenuView,
     children: [
@@ -40,7 +40,7 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: '/logo',
+    path: '/',
     name: 'logo',
     component: LogoView,
   },
@@ -61,7 +61,7 @@ const router = createRouter({
 // 注意: index 只能在守卫中使用 pinia
 router.beforeEach(async (to) => {
   const userStore = useUserStore()
-  if (to.name !== 'login' && userStore.token === null) {
+  if (to.name !== 'login' && to.name !== 'logo' && userStore.token === null) {
     ElMessage({
       message: '未登录, 请先登录',
     })

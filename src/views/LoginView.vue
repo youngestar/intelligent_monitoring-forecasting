@@ -35,10 +35,13 @@ const validateName = (rule: any, value: string, callback: (error?: string | Erro
 
 // 密码验证
 const validatePassword = (rule: any, value: string, callback: (error?: string | Error) => void) => {
+  const redex = /^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).+$/
   if (value === '') {
     callback('请填写密码')
   } else if (value.length < 6) {
     callback('密码不能小于 6 位')
+  } else if (!redex.test(value)) {
+    callback('密码应同时包含: 数字, 大写字母, 小写字母, 标点符号')
   } else if (nowView.value === 'login') {
     const user = userStore.userList.find((user) => user.userName === loginForm.name)
     if (user?.password === loginForm.password) {
@@ -73,7 +76,7 @@ const login = (formEI: FormInstance | undefined) => {
         message: '登录成功',
         type: 'success',
       })
-      router.push({ name: 'logo' })
+      router.push({ name: 'home' })
     } else {
       ElMessage({
         message: '登录失败',
