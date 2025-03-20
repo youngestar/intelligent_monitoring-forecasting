@@ -7,7 +7,7 @@ import type { Ref } from 'vue'
 import OpenAI from 'openai'
 import { marked } from 'marked'
 import router from '@/router'
-
+import { system_prompt } from './temp'
 // 对话分区接口
 interface allChat {
   isSending: boolean
@@ -161,6 +161,10 @@ async function chatWithModel(chatMessage: string): Promise<void> {
   // 添加到历史对话
   if (chatHistory.value.length === 0) {
     chatHistory.value.push({
+      role: 'system',
+      content: system_prompt,
+    })
+    chatHistory.value.push({
       role: 'user',
       content:
         // 提示词, 生成标题
@@ -246,6 +250,8 @@ async function chatWithModel(chatMessage: string): Promise<void> {
     }
     console.error('请求出错:', error)
   }
+
+  // console.log(chatHistory.value)
 }
 
 // 换行检测函数
@@ -397,7 +403,7 @@ onUnmounted(() => {
                 <!-- {{ item.content }} -->
               </div>
               <div
-                v-if="item.role !== 'user'"
+                v-if="item.role !== 'user' && item.role !== 'system'"
                 v-html="
                   renderMarkdown(
                     (item.content as string) === '' ? '回复失败,请再试一次' : '' + item.content,
