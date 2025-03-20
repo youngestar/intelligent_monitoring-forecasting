@@ -230,7 +230,10 @@ async function chatWithModel(chatMessage: string): Promise<void> {
       } else if (titleFlag === true) {
         if (delta) {
           // 使用了类型断言,可能导致错误请注意
-          allChats.value[isViewingChat.value].title += delta
+          if (allChats.value[isViewingChat.value].title.length >= 12) {
+            allChats.value[isViewingChat.value].title = '内容加载失败, 请重试'
+            return
+          } else allChats.value[isViewingChat.value].title += delta
         }
         if (allChats.value[isViewingChat.value].title === '回复格式规范') {
           allChats.value[isViewingChat.value].title = '无标题'
