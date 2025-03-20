@@ -286,7 +286,7 @@ const options = [
     content: '';
     height: 100%;
     width: 100%;
-    background-image: url(../assets/img1.gif);
+    background-image: url(@/assets/img1.gif);
     background-size: cover;
     opacity: 0.5;
     z-index: -1;

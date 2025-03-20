@@ -13,7 +13,7 @@ const goToLogin = () => {
     <img
       id="logo"
       class="blinking-shadow"
-      src="../assets/logo2.jpg"
+      src="@/assets/logo2.jpg"
       alt="logo"
       style="
         width: 10vw;

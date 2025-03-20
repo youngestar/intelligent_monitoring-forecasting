@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import MenuView from '@/views/MenuView.vue'
-import LogoView from '../views/LogoView.vue'
-import HomeView from '../views/HomeView.vue'
+import MenuView from '@/views/home/MenuView.vue'
+import LogoView from '../views/home/LogoView.vue'
+import HomeView from '../views/tables/HomeView.vue'
 import { useUserStore } from '@/stores/login'
 import { ElMessage } from 'element-plus'
 
@@ -20,22 +20,22 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/submit',
         name: 'submit',
-        component: () => import('../views/SubmitView.vue'),
+        component: () => import('../views/rejected plan/SubmitView.vue'),
       },
       {
         path: '/dataChange',
         name: 'dataChange',
-        component: () => import('../views/DataChangeView.vue'),
+        component: () => import('../views/submit/DataChangeView.vue'),
       },
       {
         path: '/background',
         name: 'background',
-        component: () => import('../views/BackgroundView.vue'),
+        component: () => import('../views/rejected plan/BackgroundView.vue'),
       },
       {
         path: '/chat/:chatName',
         name: 'chat',
-        component: () => import('../views/ChatView.vue'),
+        component: () => import('../views/chat/ChatView.vue'),
       },
     ],
   },
@@ -48,7 +48,7 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     // 登录路由, 经过路由守卫拦截后强行进入登录
-    component: () => import('../views/LoginView.vue'),
+    component: () => import('../views/login/LoginView.vue'),
   },
 ]
 

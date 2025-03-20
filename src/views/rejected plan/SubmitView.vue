@@ -266,7 +266,7 @@ h1 {
     content: '';
     height: 100%;
     width: 100%;
-    background-image: url(../assets/img1.gif);
+    background-image: url(@/assets/img1.gif);
     background-size: cover;
     opacity: 0.5;
     z-index: -1;
@@ -291,7 +291,7 @@ h1 {
 .el-form-item {
   width: 96%;
   margin: 4vh auto;
-  background-image: url(../assets/img5.gif);
+  background-image: url(@/assets/img5.gif);
   background-size: cover;
   border-radius: 0.5vh 0.5vh 0 0;
 

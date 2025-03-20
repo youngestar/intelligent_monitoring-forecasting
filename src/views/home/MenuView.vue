@@ -2,8 +2,8 @@
 import { Operation, Menu, Document, Switch, User } from '@element-plus/icons-vue'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useChatStore } from '../stores/chat'
-import { useUserStore } from '../stores/login'
+import { useChatStore } from '../../stores/chat'
+import { useUserStore } from '../../stores/login'
 
 // 使用 store
 const chatStore = useChatStore()
@@ -89,7 +89,7 @@ const nowActive = ref('home')
         </el-menu-item>
         <el-menu-item index="chat">
           <img
-            src="../assets/light.svg"
+            src="@/assets/light.svg"
             alt="AI"
             width="20px"
             style="position: relative; left: 2px; margin-right: 9px"

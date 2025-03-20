@@ -209,7 +209,7 @@ const showCharts = (charts: DefineComponent<object, object, any> | null, props: 
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url(../assets/img4.gif);
+    background-image: url(@/assets/img4.gif);
     background-size: cover;
     opacity: 0.3;
     /* 设置透明度，取值范围 0 - 1，0 为完全透明，1 为完全不透明 */
@@ -283,7 +283,7 @@ const showCharts = (charts: DefineComponent<object, object, any> | null, props: 
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url(../assets/img2.gif);
+    background-image: url(@/assets/img2.gif);
     background-size: cover;
     opacity: 0.4;
     /* 设置透明度，取值范围 0 - 1，0 为完全透明，1 为完全不透明 */
@@ -403,13 +403,13 @@ const showCharts = (charts: DefineComponent<object, object, any> | null, props: 
 body {
   width: 100%;
   height: 100%;
-  background-image: url(../assets/mainbg2.jpg);
+  background-image: url(@/assets/mainbg2.jpg);
   background-size: cover;
   color: #fff;
 }
 
 .echartsMessageBox {
-  background-image: url(../assets/img2.gif);
+  background-image: url(@/assets/img2.gif);
   background-size: cover;
   border: 2px solid #02a6b5;
   &::before {

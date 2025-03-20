@@ -7,7 +7,7 @@ import type { Ref } from 'vue'
 import OpenAI from 'openai'
 import { marked } from 'marked'
 import router from '@/router'
-import { system_prompt } from './temp'
+import { system_prompt } from '../temp'
 // 对话分区接口
 interface allChat {
   isSending: boolean
@@ -135,9 +135,9 @@ const deleteChat = (index: number) => {
 const nowChat = ref<string>('')
 // 输入框按钮颜色检测
 const inputButtonColor = ref('#444444')
-const inputButtonbgColor = ref('rgb(199.5, 201, 204)')
+const inputButtonBgColor = ref('rgb(199.5, 201, 204)')
 watch(nowChat, (newValue) => {
-  inputButtonbgColor.value = newValue === '' ? 'rgb(199.5, 201, 204)' : ''
+  inputButtonBgColor.value = newValue === '' ? 'rgb(199.5, 201, 204)' : ''
   inputButtonColor.value = newValue === '' ? '#444444' : '#fff'
 })
 // 使用 AbortController 便于流式响应检测及中断
@@ -317,7 +317,7 @@ onUnmounted(() => {
         </el-menu-item>
         <el-menu-item v-for="(item, index) in allChats" :key="index" :index="index + ''">
           <el-icon>
-            <img src="../assets/message.svg" alt="message" width="17px" style="margin-right: 5px" />
+            <img src="@/assets/message.svg" alt="message" width="17px" style="margin-right: 5px" />
           </el-icon>
           <span v-if="titleNameChanging === index">
             <el-input
@@ -438,7 +438,7 @@ onUnmounted(() => {
           </el-input>
           <el-button
             type="primary"
-            :color="inputButtonbgColor"
+            :color="inputButtonBgColor"
             style="position: absolute; right: 1.5vh; bottom: 1.5vh"
             circle
             @click="sendChat(nowChat)"
@@ -454,7 +454,7 @@ onUnmounted(() => {
         <div style="width: 100%; text-align: center; position: relative; bottom: 10px">
           <h1>
             <img
-              src="../assets/logo2.jpg"
+              src="@/assets/logo2.jpg"
               alt="logo"
               style="
                 width: 5vh;
@@ -484,7 +484,7 @@ onUnmounted(() => {
         </el-input>
         <el-button
           type="primary"
-          :color="inputButtonbgColor"
+          :color="inputButtonBgColor"
           style="position: absolute; right: 1.5vh; bottom: 1.5vh"
           circle
           @click="sendChat(nowChat)"
@@ -565,7 +565,7 @@ body {
           width: 5vh;
           height: 5vh;
           border-radius: 100%;
-          background-image: url(../assets/logo2.jpg);
+          background-image: url(@/assets/logo2.jpg);
           background-size: cover;
         }
       }
