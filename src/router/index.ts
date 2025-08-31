@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import MenuView from '@/views/home/MenuView.vue'
-import LogoView from '../views/home/LogoView.vue'
-import HomeView from '../views/tables/HomeView.vue'
+import MenuView from '@/views/Home/MenuView.vue'
+import LogoView from '../views/Home/LogoView.vue'
+import HomeView from '../views/Tables/HomeView.vue'
 import { useUserStore } from '@/stores/login'
 import { ElMessage } from 'element-plus'
 
@@ -11,31 +11,78 @@ const routes: RouteRecordRaw[] = [
     path: '/menu',
     name: 'menu',
     component: MenuView,
-    children: [
+    children: [        {
+          path: '/home',
+          name: 'home',
+          component: HomeView,
+        },
+        {
+          path: '/satelliteMap',
+          name: 'satelliteMap',
+          component: () => import('../views/Tables/SatelliteMap.vue'),
+        },
+      // 融合预测相关路由
       {
-        path: '/home',
-        name: 'home',
-        component: HomeView,
+        path: '/fusionForecasting',
+        name: 'fusionForecasting',
+        component: () => import('../views/FusionForecasting.vue/ForecastingIndex.vue'),
       },
       {
-        path: '/submit',
-        name: 'submit',
-        component: () => import('../views/rejected plan/SubmitView.vue'),
+        path: '/energyForecasting',
+        name: 'energyForecasting',
+        component: () => import('../views/FusionForecasting.vue/EnergyForecasting.vue'),
       },
       {
-        path: '/dataChange',
-        name: 'dataChange',
-        component: () => import('../views/submit/DataChangeView.vue'),
+        path: '/lightForecasting',
+        name: 'lightForecasting',
+        component: () => import('../views/FusionForecasting.vue/LightForecasting.vue'),
       },
       {
-        path: '/background',
-        name: 'background',
-        component: () => import('../views/rejected plan/BackgroundView.vue'),
+        path: '/waterForecasting',
+        name: 'waterForecasting',
+        component: () => import('../views/FusionForecasting.vue/WaterForecasting.vue'),
       },
       {
-        path: '/chat/:chatName',
-        name: 'chat',
-        component: () => import('../views/chat/ChatView.vue'),
+        path: '/windForecasting',
+        name: 'windForecasting',
+        component: () => import('../views/FusionForecasting.vue/WindForecasting.vue'),
+      },
+      // 资源监控相关路由
+      {
+        path: '/resourceMonitoring',
+        name: 'resourceMonitoring',
+        component: () => import('../views/ResourceMonitoring/MonitoringIndex.vue'),
+      },
+      {
+        path: '/energyStorage',
+        name: 'energyStorage',
+        component: () => import('../views/ResourceMonitoring/EnergyStorage.vue'),
+      },
+      {
+        path: '/lightResource',
+        name: 'lightResource',
+        component: () => import('../views/ResourceMonitoring/LightResource.vue'),
+      },
+      {
+        path: '/waterResource',
+        name: 'waterResource',
+        component: () => import('../views/ResourceMonitoring/WaterResource.vue.vue'),
+      },
+      {
+        path: '/windResource',
+        name: 'windResource',
+        component: () => import('../views/ResourceMonitoring/WindResource.vue.vue'),
+      },
+      // 调度计划相关路由
+      {
+        path: '/complementaryAnalysis',
+        name: 'complementaryAnalysis',
+        component: () => import('../views/DispatchPlan.vue/ComplementaryAnalysis.vue'),
+      },
+      {
+        path: '/complementaryScheduling',
+        name: 'complementaryScheduling',
+        component: () => import('../views/DispatchPlan.vue/ComplementaryScheduling.vue'),
       },
     ],
   },
@@ -48,7 +95,7 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     // 登录路由, 经过路由守卫拦截后强行进入登录
-    component: () => import('../views/login/LoginView.vue'),
+    component: () => import('../views/Login/LoginView.vue'),
   },
 ]
 

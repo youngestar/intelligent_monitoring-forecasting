@@ -140,16 +140,8 @@ const register = (formEI: FormInstance | undefined) => {
 <template>
   <div id="home">
     <div id="login" v-show="nowView === 'login'">
-      <el-form
-        ref="loginFormRef"
-        :model="loginForm"
-        :rules="loginRules"
-        label-width="auto"
-        id="loginForm"
-        :autocomplete="rememberMe === false ? 'off' : 'true'"
-        style="width: 90%"
-        @submit.prevent="login(loginFormRef)"
-      >
+      <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" label-width="auto" id="loginForm"
+        :autocomplete="rememberMe === false ? 'off' : 'true'" style="width: 90%" @submit.prevent="login(loginFormRef)">
         <el-form-item prop="name">
           <el-input v-model="loginForm.name" :maxlength="12" placeholder="用户名">
             <template #prefix>
@@ -160,13 +152,7 @@ const register = (formEI: FormInstance | undefined) => {
           </el-input>
         </el-form-item>
         <el-form-item prop="password">
-          <el-input
-            v-model="loginForm.password"
-            type="password"
-            show-password
-            :maxlength="12"
-            placeholder="密码"
-          >
+          <el-input v-model="loginForm.password" type="password" show-password :maxlength="12" placeholder="密码">
             <template #prefix>
               <el-icon>
                 <Lock />
@@ -188,14 +174,8 @@ const register = (formEI: FormInstance | undefined) => {
       </el-form>
     </div>
     <div id="register" v-show="nowView === 'register'">
-      <el-form
-        ref="registerFormRef"
-        :model="registerForm"
-        :rules="registerRules"
-        label-width="auto"
-        id="registerForm"
-        @submit.prevent="register(registerFormRef)"
-      >
+      <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules" label-width="auto" id="registerForm"
+        @submit.prevent="register(registerFormRef)">
         <el-form-item prop="name">
           <el-input v-model="registerForm.name" :maxlength="12" placeholder="用户名">
             <template #prefix>
@@ -206,13 +186,7 @@ const register = (formEI: FormInstance | undefined) => {
           </el-input>
         </el-form-item>
         <el-form-item prop="password">
-          <el-input
-            v-model="registerForm.password"
-            type="password"
-            show-password
-            :maxlength="12"
-            placeholder="密码"
-          >
+          <el-input v-model="registerForm.password" type="password" show-password :maxlength="12" placeholder="密码">
             <template #prefix>
               <el-icon>
                 <Lock />
@@ -221,13 +195,8 @@ const register = (formEI: FormInstance | undefined) => {
           </el-input>
         </el-form-item>
         <el-form-item prop="checkPassword">
-          <el-input
-            v-model="registerForm.checkPassword"
-            type="password"
-            show-password
-            :maxlength="12"
-            placeholder="请再次确认密码"
-          >
+          <el-input v-model="registerForm.checkPassword" type="password" show-password :maxlength="12"
+            placeholder="请再次确认密码">
             <template #prefix>
               <el-icon>
                 <Lock />
@@ -236,20 +205,12 @@ const register = (formEI: FormInstance | undefined) => {
           </el-input>
         </el-form-item>
         <el-form-item>
-          <el-button
-            @click="register(registerFormRef)"
-            type="primary"
-            style="width: 80%; margin: 0 10%"
-          >
+          <el-button @click="register(registerFormRef)" type="primary" style="width: 80%; margin: 0 10%">
             注册
           </el-button>
           <span style="font-size: 14px; margin-left: 10%; color: #000">
             或者
-            <el-link
-              type="primary"
-              @click="nowView = 'login'"
-              style="position: relative; bottom: 1.5px"
-            >
+            <el-link type="primary" @click="nowView = 'login'" style="position: relative; bottom: 1.5px">
               现在登录!
             </el-link>
           </span>
@@ -261,8 +222,14 @@ const register = (formEI: FormInstance | undefined) => {
 
 <style scoped>
 #home {
-  height: 65vh;
+  height: 98.2vh;
   width: 100%;
+  background-image: url(@/assets/mainbg2.jpg);
+  background-size: cover;
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 
   #login {
     width: 400px;

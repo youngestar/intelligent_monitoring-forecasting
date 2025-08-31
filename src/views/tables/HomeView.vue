@@ -1,445 +1,272 @@
 <script setup lang="ts">
-// 封装图表引用
-import Loading from '@/components/Loading.vue'
-import DisasterRecovery from '@/components/DisasterRecovery.vue'
-import SituationalAwareness from '@/components/SituationalAwareness.vue'
-import VulnerabilityManagement from '@/components/VulnerabilityManagement.vue'
-import DailyOperations from '@/components/DailyOperations.vue'
-import PrivilegeRestriction from '@/components/PrivilegeRestriction.vue'
-import AttackAttribution from '@/components/AttackAttribution.vue'
-import BaselineAudit from '@/components/BaselineAudit.vue'
-import TrafficAnalysis from '@/components/TrafficAnalysis.vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+// 按需引入 echarts 核心模块
+import * as echarts from 'echarts/core'
+// 引入需要的组件
+import {
+  TitleComponent,
+  TooltipComponent,
+  VisualMapComponent,
+  GeoComponent
+} from 'echarts/components'
+// 引入地图图表
+import { MapChart } from 'echarts/charts'
+// 引入 Canvas 渲染器
+import { CanvasRenderer } from 'echarts/renderers'
 
-// element-plus 组件调用
-import { ElDialog } from 'element-plus'
-import { FullScreen } from '@element-plus/icons-vue'
+// 注册必须的组件
+echarts.use([
+  TitleComponent,
+  TooltipComponent,
+  VisualMapComponent,
+  GeoComponent,
+  MapChart,
+  CanvasRenderer
+])
 
-// vue 调用
-import { ref, shallowRef, type DefineComponent, type Ref } from 'vue'
+// 使用 ref 创建一个响应式的 DOM 引用
+const chartRef = ref(null)
+let myChart = null
+let option = null
 
-// 接口: 传入 props
-interface echartsStyle {
-  height: string
-  width?: string
+// 导入兴山县地图数据
+import xingshanMapData from '@/assets/xingshan-county.json'
+
+// 模拟兴山县各地区数据
+const xingshanData = [
+  { name: '兴山县', value: 80 },
+  { name: '古夫镇', value: 30 },
+  { name: '昭君镇', value: 25 },
+  { name: '峡口镇', value: 20 }
+]
+
+// 初始化图表的函数
+const initChart = async () => {
+  // 获取图表容器的 DOM 元素
+  const chartDom = chartRef.value
+  if (!chartDom) return
+
+  // 初始化 ECharts 实例
+  myChart = echarts.init(chartDom)
+
+  try {
+    // 注册地图数据
+    echarts.registerMap('xingshan', xingshanMapData)
+
+    // 配置图表选项
+    option = {
+      title: {
+        text: '湖北省宜昌市兴山县地图',
+        subtext: '示例数据展示',
+        left: 'center',
+        textStyle: {
+          color: '#fff',
+          fontSize: 20
+        },
+        subtextStyle: {
+          color: '#ccc',
+          fontSize: 14
+        }
+      },
+      tooltip: {
+        trigger: 'item',
+        formatter: function (params) {
+          return `${params.name}: ${params.value || 0} 个单位`
+        },
+        textStyle: {
+          fontSize: 14,
+          color: '#333'
+        },
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderColor: '#00BFFF',
+        borderWidth: 1
+      },
+      visualMap: {
+        min: 0,
+        max: 100,
+        left: 'left',
+        top: 'bottom',
+        text: ['高', '低'],
+        textStyle: {
+          color: '#fff'
+        },
+        calculable: true,
+        inRange: {
+          color: ['#e6f7ff', '#bae7ff', '#91d5ff', '#69c0ff', '#40a9ff', '#1890ff', '#096dd9']
+        }
+      },
+      series: [
+        {
+          name: '示例数据',
+          type: 'map',
+          map: 'xingshan',
+          emphasis: {
+            label: {
+              show: true,
+              color: '#fff',
+              fontWeight: 'bold',
+              fontSize: 16
+            },
+            itemStyle: {
+              areaColor: '#3274ff',
+              borderColor: '#fff',
+              borderWidth: 2
+            }
+          },
+          select: {
+            label: {
+              show: true,
+              color: '#fff',
+              fontWeight: 'bold'
+            },
+            itemStyle: {
+              areaColor: '#1890ff',
+              borderColor: '#fff'
+            }
+          },
+          roam: true, // 启用缩放和平移
+          label: {
+            show: true,
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 'normal'
+          },
+          data: xingshanData,
+          // 设置地图投影方式和中心点
+          geoIndex: 0,
+          // 调整地图中心点和缩放级别
+          zoom: 10,
+          center: [110.78, 31.20]
+        }
+      ]
+    }
+
+    // 应用配置项
+    myChart.setOption(option)
+  } catch (error) {
+    console.error('地图初始化失败:', error)
+    // 当无法加载地图数据时，显示提示信息
+    if (myChart) {
+      myChart.setOption({
+        title: {
+          text: '兴山县地图数据加载失败',
+          left: 'center',
+          top: 'center',
+          textStyle: {
+            color: '#fff',
+            fontSize: 16
+          }
+        },
+        graphic: [
+          {
+            type: 'text',
+            left: 'center',
+            top: '60%',
+            style: {
+              text: '请检查地图数据文件是否正确',
+              fill: '#fff',
+              fontSize: 14
+            }
+          }
+        ]
+      })
+    }
+  }
 }
 
-const fullScreenVisible = ref(false)
-
-// 弹窗显示的组件及组件样式
-const showingCharts = shallowRef<DefineComponent<object, object, any> | null>()
-const echartsStyle: Ref<echartsStyle> = ref({ height: '27vh' })
-// 通用样式
-const commonHeight: string = '60vh'
-const commonWidth: string = '70vw'
-
-// 弹窗展示图表函数
-const showCharts = (charts: DefineComponent<object, object, any> | null, props: echartsStyle) => {
-  showingCharts.value = charts
-  fullScreenVisible.value = true
-  echartsStyle.value = props
+// 处理窗口大小变化的函数
+const handleWindowResize = () => {
+  if (myChart) {
+    myChart.resize()
+  }
 }
+
+// 在组件挂载后初始化图表并监听窗口大小变化
+onMounted(() => {
+  initChart()
+  window.addEventListener('resize', handleWindowResize)
+})
+
+// 在组件卸载前销毁图表实例并移除事件监听器
+onBeforeUnmount(() => {
+  if (myChart) {
+    myChart.dispose()
+  }
+  window.removeEventListener('resize', handleWindowResize)
+})
 </script>
 
 <template>
-  <div>
-    <el-dialog
-      v-model="fullScreenVisible"
-      :style="{ width: '70%', height: '70vh' }"
-      class="echartsMessageBox"
-      :showClose="false"
-    >
-      <div>
-        <component :is="showingCharts" :height="echartsStyle.height" :width="echartsStyle?.width" />
-      </div>
-    </el-dialog>
+  <div class="xingshan-map-container">
+    <div class="map-header">
+      <h1>湖北省宜昌市兴山县地图</h1>
+      <router-link to="/satelliteMap" class="satellite-map-link">
+        <button class="satellite-btn">
+          查看卫星地图
+        </button>
+      </router-link>
+    </div>
+    <div ref="chartRef" :style="{ width: '100%', height: '80vh' }"></div>
   </div>
-  <el-row>
-    <el-col :span="7">
-      <div class="container">
-        <div class="container-footer">
-          <!-- 漏洞维护 -->
-          <VulnerabilityManagement></VulnerabilityManagement>
-          <div
-            @click="
-              showCharts(VulnerabilityManagement, { height: commonHeight, width: commonWidth })
-            "
-            class="full-screen"
-          >
-            <el-icon><FullScreen /></el-icon>
-          </div>
-        </div>
-      </div>
-      <div class="container">
-        <div class="container-footer">
-          <!-- 灾备机制 -->
-          <DisasterRecovery></DisasterRecovery>
-          <div
-            @click="showCharts(DisasterRecovery, { height: commonHeight, width: commonWidth })"
-            class="full-screen"
-          >
-            <el-icon style="position: relative; top: 3vh"><FullScreen /></el-icon>
-          </div>
-        </div>
-      </div>
-      <div class="container">
-        <div class="container-footer">
-          <!-- 态势感知 -->
-          <SituationalAwareness></SituationalAwareness>
-          <div
-            @click="showCharts(SituationalAwareness, { height: commonHeight, width: commonWidth })"
-            class="full-screen"
-          >
-            <el-icon style="position: relative; top: 6vh"><FullScreen /></el-icon>
-          </div>
-        </div>
-      </div>
-    </el-col>
-    <el-col :span="10">
-      <div id="mainTitle" style="display: flex; justify-content: space-between">
-        <span>
-          <Loading></Loading>
-        </span>
-        <span>日志记录</span>
-        <span>
-          <Loading></Loading>
-        </span>
-      </div>
-      <div id="mainTop">
-        <div class="mainTop-footer"></div>
-        <!-- 日常运维 -->
-        <DailyOperations></DailyOperations>
-        <div
-          @click="showCharts(DailyOperations, { height: commonHeight, width: commonWidth })"
-          class="full-screen"
-        >
-          <el-icon><FullScreen /></el-icon>
-        </div>
-      </div>
-      <div id="mainBottom">
-        <div class="mainBottom-footer">
-          <div class="mainBottom-img">
-            <!-- 权限抑制 -->
-            <PrivilegeRestriction></PrivilegeRestriction>
-            <div
-              @click="
-                showCharts(PrivilegeRestriction, { height: commonHeight, width: commonWidth })
-              "
-              class="full-screen"
-            >
-              <el-icon><FullScreen /></el-icon>
-            </div>
-          </div>
-        </div>
-      </div>
-    </el-col>
-    <el-col :span="7">
-      <div class="container">
-        <div class="container-footer">
-          <!-- 攻击溯源 -->
-          <AttackAttribution></AttackAttribution>
-        </div>
-        <div
-          @click="showCharts(AttackAttribution, { height: commonHeight, width: commonWidth })"
-          class="full-screen"
-        >
-          <el-icon style="position: relative; bottom: 1vh"><FullScreen /></el-icon>
-        </div>
-      </div>
-      <div class="container">
-        <div class="container-footer">
-          <!-- 基线排查 -->
-          <BaselineAudit></BaselineAudit>
-          <div
-            @click="showCharts(BaselineAudit, { height: commonHeight, width: commonWidth })"
-            class="full-screen"
-          >
-            <el-icon style="position: relative; top: 3vh"><FullScreen /></el-icon>
-          </div>
-        </div>
-      </div>
-      <div class="container">
-        <div class="container-footer">
-          <!-- 流量分析 -->
-          <TrafficAnalysis></TrafficAnalysis>
-          <div
-            @click="showCharts(TrafficAnalysis, { height: commonHeight, width: commonWidth })"
-            class="full-screen"
-          >
-            <el-icon style="position: relative; top: 3vh"><FullScreen /></el-icon>
-          </div>
-        </div>
-      </div>
-    </el-col>
-  </el-row>
 </template>
 
 <style scoped>
-.el-col {
+.xingshan-map-container {
   width: 100%;
-  height: 95vh;
-  /* border: 1px solid #fff; */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #0D1136 0%, #1A2151 100%);
 }
 
-#mainTitle {
-  position: relative;
-  width: 96%;
-  height: 7vh;
-  margin: auto;
-  padding: 0 2%;
-  text-align: center;
-  font-size: 5vh;
-  border-bottom: 0.1em solid #02a6b5;
-}
-
-#mainTop {
-  position: relative;
-  width: 96%;
-  margin: 0.5vh auto;
-  height: 58%;
-  margin-top: 1.5%;
-  /* 背景黑色卡片 */
-  background-color: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(56, 209, 163, 0.17);
-
-  /* 背景图片设置 */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url(@/assets/img4.gif);
-    background-size: cover;
-    opacity: 0.3;
-    /* 设置透明度，取值范围 0 - 1，0 为完全透明，1 为完全不透明 */
-    z-index: -1;
-    /* 确保伪元素在内容下方 */
-  }
-
-  .mainTop-footer {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-
-    &::before {
-      position: absolute;
-      top: 0;
-      left: 0;
-      content: '';
-      width: 2.5vw;
-      height: 2.5vh;
-      border-top: 0.4vh solid #02a6b5;
-      border-left: 0.4vh solid #02a6b5;
-    }
-
-    &::after {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      content: '';
-      width: 2.5vw;
-      height: 2.5vh;
-      border-bottom: 0.4vh solid #02a6b5;
-      border-right: 0.4vh solid #02a6b5;
-    }
-  }
-}
-
-#mainBottom {
-  position: relative;
-  width: 96%;
-  height: 33.3%;
-  margin: 1vh auto;
-  background-color: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(56, 209, 163, 0.17);
-
-  &::before {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 1.5vw;
-    height: 1.5vh;
-    border-top: 0.3vh solid #02a6b5;
-    border-left: 0.3vh solid #02a6b5;
-    content: '';
-  }
-
-  &::after {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 1.5vw;
-    height: 1.5vh;
-    border-top: 0.3vh solid #02a6b5;
-    border-right: 0.3vh solid #02a6b5;
-    content: '';
-  }
-
-  .mainBottom-img::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url(@/assets/img2.gif);
-    background-size: cover;
-    opacity: 0.4;
-    /* 设置透明度，取值范围 0 - 1，0 为完全透明，1 为完全不透明 */
-    z-index: -1;
-    /* 确保伪元素在内容下方 */
-  }
-
-  .mainBottom-footer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  .mainBottom-footer::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 1.5vw;
-    height: 1.5vh;
-    border-bottom: 0.3vh solid #02a6b5;
-    border-left: 0.3vh solid #02a6b5;
-  }
-
-  .mainBottom-footer::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 1.5vw;
-    height: 1.5vh;
-    border-bottom: 0.3vh solid #02a6b5;
-    border-right: 0.3vh solid #02a6b5;
-  }
-}
-
-.container {
-  position: relative;
+.map-header {
   width: 100%;
-  height: 33%;
-  margin-top: 1.5%;
-  background-color: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(56, 209, 163, 0.17);
-
-  &::before {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 1vh;
-    height: 1vh;
-    border-top: 0.25vh solid #02a6b5;
-    border-left: 0.25vh solid #02a6b5;
-    content: '';
-  }
-
-  &::after {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 1vh;
-    height: 1vh;
-    border-top: 0.25vh solid #02a6b5;
-    border-right: 0.25vh solid #02a6b5;
-    content: '';
-  }
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
-.container-footer {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-
-  &::before {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 1vh;
-    height: 1vh;
-    border-bottom: 0.25vh solid #02a6b5;
-    border-left: 0.25vh solid #02a6b5;
-    content: '';
-  }
-
-  &::after {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 1vh;
-    height: 1vh;
-    border-bottom: 0.25vh solid #02a6b5;
-    border-right: 0.25vh solid #02a6b5;
-    content: '';
-  }
-}
-
-.full-screen {
-  position: absolute;
-  top: 2vh;
-  right: 2vh;
-  font-size: 2vh;
-  transition: color 0.75s;
-  &:hover {
-    cursor: pointer;
-    color: #00bfff;
-  }
-}
-
-:v-deep .echartsMessageBox {
-  background-color: #000 !important;
-}
-</style>
-
-<style>
-body {
-  width: 100%;
-  height: 100%;
-  background-image: url(@/assets/mainbg2.jpg);
-  background-size: cover;
+.map-header h1 {
+  margin: 0;
   color: #fff;
+  font-size: 28px;
+  font-weight: 600;
+  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.echartsMessageBox {
-  background-image: url(@/assets/img2.gif);
-  background-size: cover;
-  border: 2px solid #02a6b5;
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #000 !important;
-    opacity: 0.3;
-  }
-  p {
-    color: #fff;
-    font-weight: bold;
-  }
+.satellite-btn {
+  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
-/* 废案: 边角样式
- .echartsMessageBoxIn {
-  &::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 3vh;
-    height: 3vh;
-    border-top: 0.25vh solid #02a6b5;
-    border-left: 0.25vh solid #02a6b5;
-    content: '';
-  }
-} */
+.satellite-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.satellite-btn:active {
+  transform: translateY(0);
+}
+
+:deep(.echarts) {
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 191, 255, 0.15);
+  border: 1px solid rgba(0, 191, 255, 0.3);
+}
 </style>

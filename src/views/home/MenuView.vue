@@ -40,25 +40,12 @@ const nowActive = ref('home')
 </script>
 
 <template>
-  <el-button
-    color="#00DDFF"
-    type="primary"
-    large
-    id="menuButton"
-    @click="drawer = true"
-    v-show="userStore.token"
-  >
+  <el-button color="#00DDFF" type="primary" large id="menuButton" @click="drawer = true" v-show="userStore.token">
     <el-icon size="2.5vh">
       <Menu />
     </el-icon>
   </el-button>
-  <el-drawer
-    id="drawer"
-    v-model="drawer"
-    title="I am the title"
-    :direction="'ltr'"
-    style="background-color: #545c64"
-  >
+  <el-drawer id="drawer" v-model="drawer" title="I am the title" :direction="'ltr'" style="background-color: #545c64">
     <template #header>
       <h4 style="color: #fff">
         <el-icon style="position: relative; top: 2px">
@@ -68,66 +55,56 @@ const nowActive = ref('home')
       </h4>
     </template>
     <template #default>
-      <el-menu
-        active-text-color="#ffd04b"
-        background-color="#545c64"
-        :default-active="nowActive"
-        text-color="#fff"
-        @select="turnTo"
-      >
-        <!-- <el-menu-item index="login">
-          <el-icon>
-            <User />
-          </el-icon>
-          <span>登录页面</span>
-        </el-menu-item> -->
+      <el-menu active-text-color="#ffd04b" background-color="#545c64" :default-active="nowActive" text-color="#fff"
+        @select="turnTo" unique-opened="true">
         <el-menu-item index="home">
           <el-icon>
             <Document />
           </el-icon>
-          <span>日志记录</span>
+          <span style=" font-size: large;">首页</span>
         </el-menu-item>
-        <el-menu-item index="chat">
-          <img
-            src="@/assets/light.svg"
-            alt="AI"
-            width="20px"
-            style="position: relative; left: 2px; margin-right: 9px"
-          />
-          <span>智能对话</span>
-        </el-menu-item>
-        <!-- <el-menu-item index="submit">
-          <el-icon>
-            <Switch />
-          </el-icon>
-          <span>数据更替</span>
-        </el-menu-item> -->
-        <el-menu-item index="dataChange">
-          <el-icon>
-            <Switch />
-          </el-icon>
-          <span>添加防护</span>
-        </el-menu-item>
-        <!-- <el-menu-item index="background">
-          <el-icon
-            ><svg
-              t="1740745130767"
-              class="icon"
-              viewBox="0 0 1024 1024"
-              version="1.1"
-              xmlns="http://www.w3.org/2000/svg"
-              p-id="1955"
-              width="200"
-              height="200"
-            >
-              <path
-                d="M128.299 128C92.788 128 64 156.788 64 192.299v639.4C64 867.212 92.788 896 128.299 896H895.7c35.512 0 64.3-28.788 64.3-64.299V192.299C960 156.788 931.212 128 895.701 128H128.299zM128 588.313l178.162-178.162c24.795-24.795 64.996-24.795 89.792 0L817.803 832H128V588.313z m768 231.375L666.385 590.073l64.718-64.718c25.153-25.152 65.933-25.152 91.085 0L896 599.167v220.521zM694.65 471.299l-73.519 73.519L432.653 356.34c-45.064-45.064-118.127-45.064-163.19 0L128 497.803V192h768v316.657l-37.358-37.358c-45.286-45.285-118.707-45.285-163.992 0z"
-                p-id="1956"
-              ></path>
-            </svg>
-          </el-icon>
-          <span>背景修改</span>
-        </el-menu-item> -->
+
+        <!-- 融合预测 -->
+        <el-sub-menu index="fusionForecasting">
+          <template #title>
+            <el-icon>
+              <Document />
+            </el-icon>
+            <span style=" font-size: large;">融合预测</span>
+          </template>
+          <el-menu-item index="fusionForecasting">预测概览</el-menu-item>
+          <el-menu-item index="energyForecasting">能源预测</el-menu-item>
+          <el-menu-item index="lightForecasting">光照预测</el-menu-item>
+          <el-menu-item index="waterForecasting">水资源预测</el-menu-item>
+          <el-menu-item index="windForecasting">风力预测</el-menu-item>
+        </el-sub-menu>
+
+        <!-- 资源监控 -->
+        <el-sub-menu index="resourceMonitoring">
+          <template #title>
+            <el-icon>
+              <Operation />
+            </el-icon>
+            <span style=" font-size: large;">资源监控</span>
+          </template>
+          <el-menu-item index="resourceMonitoring">监控概览</el-menu-item>
+          <el-menu-item index="energyStorage">储能监控</el-menu-item>
+          <el-menu-item index="lightResource">光照资源</el-menu-item>
+          <el-menu-item index="waterResource">水资源监控</el-menu-item>
+          <el-menu-item index="windResource">风力资源监控</el-menu-item>
+        </el-sub-menu>
+
+        <!-- 调度计划 -->
+        <el-sub-menu index="dispatchPlan">
+          <template #title>
+            <el-icon>
+              <Switch />
+            </el-icon>
+            <span style=" font-size: large;">调度计划</span>
+          </template>
+          <el-menu-item index="complementaryAnalysis">互补分析</el-menu-item>
+          <el-menu-item index="complementaryScheduling">互补调度</el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </template>
   </el-drawer>
@@ -168,6 +145,7 @@ const nowActive = ref('home')
 
 .el-drawer {
   background-color: pink;
+
   &::before {
     content: '111';
     position: absolute;
