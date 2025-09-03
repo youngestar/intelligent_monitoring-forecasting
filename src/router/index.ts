@@ -11,41 +11,42 @@ const routes: RouteRecordRaw[] = [
     path: '/menu',
     name: 'menu',
     component: MenuView,
-    children: [        {
-          path: '/home',
-          name: 'home',
-          component: HomeView,
-        },
-        {
-          path: '/satelliteMap',
-          name: 'satelliteMap',
-          component: () => import('../views/Tables/SatelliteMap.vue'),
-        },
+    children: [
+      {
+        path: '/home',
+        name: 'home',
+        component: HomeView,
+      },
+      {
+        path: '/satelliteMap',
+        name: 'satelliteMap',
+        component: () => import('../views/Tables/SatelliteMap.vue'),
+      },
       // 融合预测相关路由
       {
         path: '/fusionForecasting',
         name: 'fusionForecasting',
-        component: () => import('../views/FusionForecasting.vue/ForecastingIndex.vue'),
+        component: () => import('../views/FusionForecasting/FusionForecasting.vue'),
       },
       {
         path: '/energyForecasting',
         name: 'energyForecasting',
-        component: () => import('../views/FusionForecasting.vue/EnergyForecasting.vue'),
+        component: () => import('../views/FusionForecasting/EnergyForecasting.vue'),
       },
       {
         path: '/lightForecasting',
         name: 'lightForecasting',
-        component: () => import('../views/FusionForecasting.vue/LightForecasting.vue'),
+        component: () => import('../views/FusionForecasting/LightForecasting.vue'),
       },
       {
         path: '/waterForecasting',
         name: 'waterForecasting',
-        component: () => import('../views/FusionForecasting.vue/WaterForecasting.vue'),
+        component: () => import('../views/FusionForecasting/WaterForecasting.vue'),
       },
       {
         path: '/windForecasting',
         name: 'windForecasting',
-        component: () => import('../views/FusionForecasting.vue/WindForecasting.vue'),
+        component: () => import('../views/FusionForecasting/WindForecasting.vue'),
       },
       // 资源监控相关路由
       {
@@ -66,23 +67,23 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/waterResource',
         name: 'waterResource',
-        component: () => import('../views/ResourceMonitoring/WaterResource.vue.vue'),
+        component: () => import('../views/ResourceMonitoring/WaterResource.vue'),
       },
       {
         path: '/windResource',
         name: 'windResource',
-        component: () => import('../views/ResourceMonitoring/WindResource.vue.vue'),
+        component: () => import('../views/ResourceMonitoring/WindResource.vue'),
       },
       // 调度计划相关路由
       {
         path: '/complementaryAnalysis',
         name: 'complementaryAnalysis',
-        component: () => import('../views/DispatchPlan.vue/ComplementaryAnalysis.vue'),
+        component: () => import('../views/DispatchPlan/ComplementaryAnalysis.vue'),
       },
       {
         path: '/complementaryScheduling',
         name: 'complementaryScheduling',
-        component: () => import('../views/DispatchPlan.vue/ComplementaryScheduling.vue'),
+        component: () => import('../views/DispatchPlan/ComplementaryScheduling.vue'),
       },
     ],
   },
