@@ -21,7 +21,8 @@ interface AMapInstance {
   Icon: any
   Pixel: any
   Size: any
-  TileLayer: {
+  TileLayer: { // 合并类型定义
+    new (): any // 添加构造函数签名
     Satellite: any
     RoadNet: any
   }
@@ -31,18 +32,29 @@ declare global {
   interface Window {
     AMap: AMapInstance
     tempMarker: any
-    removeMarker: (id: string) => void
+    removeMarker?: (id: string) => void
+    _AMapSecurityConfig?: { // 添加安全配置属性
+      securityJsCode: string
+    }
   }
 }
 
 // 地图DOM引用
-const mapRef = ref<HTMLDivElement>(null)
+const mapRef = ref<HTMLDivElement | null>(null) // 允许null值
 let mapInstance: any = null
-let AMap: AMapInstance = null
+let AMap: AMapInstance | null = null // 允许null值
 let markers: Map<string, any> = new Map() // 存储地图标记实例
 
 // 使用Pinia store
 const mapStore = useMapStore()
+// 类型断言，确保所有需要的方法可以被正确识别
+const { 
+  toggleCoordinatePicker: storeToggleCoordinatePicker,
+  removeMarker: storeRemoveMarker,
+  addAllPresetLocations: storeAddAllPresetLocations,
+  selectLocation: storeSelectLocation,
+  addMarker: storeAddMarker
+} = mapStore as any
 
 // 选中电站：直接派生自 Pinia，避免 watch 同步问题
 const selectedPowerStation = computed<MarkerData | null>(() => {
@@ -289,10 +301,10 @@ const addMarkerToMap = (markerData: MarkerData) => {
     // 查找mapStore中对应的标记，确保使用正确的对象实例
     const matchingMarker = mapStore.selectedMarkers.find(m => m.id === markerData.id)
     if (matchingMarker) {
-      mapStore.selectLocation(matchingMarker)
+      storeSelectLocation(matchingMarker)
     } else {
       // 如果找不到匹配的标记，先创建并添加到store中，然后再选择它
-      const newMarker = mapStore.addMarker({
+      const newMarker = storeAddMarker({
         name: markerData.name,
         coordinates: markerData.coordinates,
         type: markerData.type,
@@ -300,7 +312,7 @@ const addMarkerToMap = (markerData: MarkerData) => {
         description: markerData.description,
         isActive: true
       })
-      mapStore.selectLocation(newMarker)
+      storeSelectLocation(newMarker)
     }
 
     // 移除弹窗，信息已在右侧展示栏中显示
@@ -349,7 +361,7 @@ const addExistingMarkers = () => {
 
 // 添加全部预设地点
 const addAllPresetLocations = () => {
-  const result = mapStore.addAllPresetLocations()
+  const result = storeAddAllPresetLocations()
 
   if (result.addedCount > 0) {
     showMessage(`已成功添加${result.addedCount}个预设地点！`, 'success')
@@ -413,21 +425,27 @@ const initMap = async () => {
     // 移除点击空白处切换功能，改为使用按钮控制
 
     // 2. 添加基础控件
-    mapInstance.addControl(new AMap.Scale())
-    mapInstance.addControl(new AMap.ToolBar())
+    if (AMap) {
+      mapInstance.addControl(new AMap.Scale())
+      mapInstance.addControl(new AMap.ToolBar())
+    }
 
     // 3. 手动创建和管理图层
     let normalLayer = null
     let satelliteLayer = null
+    let roadNetLayer = null
 
     // 4. 先加载标准图层作为默认显示
-    normalLayer = new AMap.TileLayer()
-    normalLayer.setMap(mapInstance)
-    console.log('标准图层已添加并显示')
+    if (AMap) {
+      normalLayer = new AMap.TileLayer() // 使用标准地图图层
+      normalLayer.setMap(mapInstance)
+      console.log('标准图层已添加并显示')
 
-    // 5. 创建卫星图层但先不显示
-    satelliteLayer = new AMap.TileLayer.Satellite()
-    console.log('卫星图层已创建')
+      // 5. 创建卫星图层和路网图层但先不显示
+      satelliteLayer = new AMap.TileLayer.Satellite()
+      roadNetLayer = new AMap.TileLayer.RoadNet()
+      console.log('卫星图层和路网图层已创建')
+    }
 
     // 6. 添加自定义的图层切换按钮（优化版）
     const layerSwitchButton = document.createElement('div')
@@ -482,8 +500,9 @@ const initMap = async () => {
     normalBtn.style.color = '#1677ff'
 
     normalBtn.onclick = () => {
-      // 隐藏卫星图层，显示标准图层
+      // 隐藏卫星图层和路网图层，显示标准图层
       if (satelliteLayer) satelliteLayer.setMap(null)
+      if (roadNetLayer) roadNetLayer.setMap(null)
       if (normalLayer) normalLayer.setMap(mapInstance)
       console.log('已切换到标准图层')
 
@@ -498,10 +517,11 @@ const initMap = async () => {
     layerSwitchButton.appendChild(normalBtn)
 
     satelliteBtn.onclick = () => {
-      // 隐藏标准图层，显示卫星图层
+      // 隐藏标准图层，显示卫星图层和路网图层
       if (normalLayer) normalLayer.setMap(null)
       if (satelliteLayer) satelliteLayer.setMap(mapInstance)
-      console.log('已切换到卫星图层')
+      if (roadNetLayer) roadNetLayer.setMap(mapInstance)
+      console.log('已切换到卫星图层（带路网）')
 
       // 更新按钮激活状态
       satelliteBtn.classList.add('active')
@@ -547,7 +567,7 @@ const initMap = async () => {
     // 添加点击事件
     overviewButton.onclick = () => {
       // 点击按钮时，清除选中状态，显示整体信息
-      mapStore.selectLocation(null)
+      storeSelectLocation(null)
     }
 
     // 将电站总体介绍按钮添加到地图容器
@@ -589,15 +609,17 @@ const initMap = async () => {
           window.tempMarker.setMap(null)
         }
 
-        window.tempMarker = new AMap.Marker({
-          position: [lng, lat],
-          icon: new AMap.Icon({
-            size: new AMap.Size(30, 30),
-            image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
-            imageSize: new AMap.Size(30, 30)
-          }),
-          title: `拾取点: ${lng.toFixed(6)}, ${lat.toFixed(6)}`
-        })
+        if (AMap) {
+          window.tempMarker = new AMap.Marker({
+            position: [lng, lat],
+            icon: new AMap.Icon({
+              size: new AMap.Size(30, 30),
+              image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+              imageSize: new AMap.Size(30, 30)
+            }),
+            title: `拾取点: ${lng.toFixed(6)}, ${lat.toFixed(6)}`
+          })
+        }
         window.tempMarker.setMap(mapInstance)
 
         // 5秒后自动移除临时标记
@@ -637,7 +659,7 @@ const initMap = async () => {
 
 // 切换坐标拾取模式
 const toggleCoordinatePicker = () => {
-  mapStore.toggleCoordinatePicker()
+  storeToggleCoordinatePicker()
   // 切换模式时清除临时标记
   if (window.tempMarker) {
     window.tempMarker.setMap(null)
@@ -680,7 +702,7 @@ onMounted(() => {
       marker.setMap(null)
       markers.delete(id)
     }
-    mapStore.removeMarker(id)
+    storeRemoveMarker(id)
   }
 
   initMap()
@@ -1251,9 +1273,8 @@ onBeforeUnmount(() => {
 /* 自定义信息窗口样式 */
 :deep(.custom-info-window) {
   padding: 12px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #4facfe;
 }
 
 :deep(.info-window-header) {
@@ -1261,8 +1282,6 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
 }
 
 :deep(.info-window-header h3) {

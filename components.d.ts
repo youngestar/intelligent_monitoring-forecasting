@@ -26,7 +26,6 @@ declare module 'vue' {
     ElSubMenu: typeof import('element-plus/es')['ElSubMenu']
     Input: typeof import('./src/components/ui/input/Input.vue')['default']
     Loading: typeof import('./src/components/Loading.vue')['default']
-    MapLegend: typeof import('./src/components/ui/MapLegend.vue')['default']
     MarkerManagement: typeof import('./src/components/MarkerManagement.vue')['default']
     Message: typeof import('./src/components/ui/Message.vue')['default']
     Popover: typeof import('./src/components/ui/popover/Popover.vue')['default']
