@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
@@ -52,11 +51,11 @@ const regionSpecificData = {
       forecast: [8400, 8200, 8300, 8500, 8600, 8100, 8000]
     },
     waterQualityData: [
-      { name: 'PH值', value: 7.5, standard: 6.5-8.5 },
-      { name: '溶解氧', value: 8.2, standard: 5-14.6 },
-      { name: '氨氮', value: 0.15, standard: 0-0.5 },
-      { name: 'COD', value: 12, standard: 0-30 },
-      { name: '总磷', value: 0.08, standard: 0-0.2 }
+      { name: 'PH值', value: 7.5, standard: 6.5 - 8.5 },
+      { name: '溶解氧', value: 8.2, standard: 5 - 14.6 },
+      { name: '氨氮', value: 0.15, standard: 0 - 0.5 },
+      { name: 'COD', value: 12, standard: 0 - 30 },
+      { name: '总磷', value: 0.08, standard: 0 - 0.2 }
     ]
   },
   '昭君镇': {
@@ -75,11 +74,11 @@ const regionSpecificData = {
       forecast: [7700, 7500, 7600, 7800, 7900, 7400, 7300]
     },
     waterQualityData: [
-      { name: 'PH值', value: 7.4, standard: 6.5-8.5 },
-      { name: '溶解氧', value: 8.0, standard: 5-14.6 },
-      { name: '氨氮', value: 0.16, standard: 0-0.5 },
-      { name: 'COD', value: 13, standard: 0-30 },
-      { name: '总磷', value: 0.09, standard: 0-0.2 }
+      { name: 'PH值', value: 7.4, standard: 6.5 - 8.5 },
+      { name: '溶解氧', value: 8.0, standard: 5 - 14.6 },
+      { name: '氨氮', value: 0.16, standard: 0 - 0.5 },
+      { name: 'COD', value: 13, standard: 0 - 30 },
+      { name: '总磷', value: 0.09, standard: 0 - 0.2 }
     ]
   },
   '峡口镇': {
@@ -98,11 +97,11 @@ const regionSpecificData = {
       forecast: [8900, 8700, 8800, 9000, 9100, 8600, 8500]
     },
     waterQualityData: [
-      { name: 'PH值', value: 7.6, standard: 6.5-8.5 },
-      { name: '溶解氧', value: 8.3, standard: 5-14.6 },
-      { name: '氨氮', value: 0.14, standard: 0-0.5 },
-      { name: 'COD', value: 11, standard: 0-30 },
-      { name: '总磷', value: 0.07, standard: 0-0.2 }
+      { name: 'PH值', value: 7.6, standard: 6.5 - 8.5 },
+      { name: '溶解氧', value: 8.3, standard: 5 - 14.6 },
+      { name: '氨氮', value: 0.14, standard: 0 - 0.5 },
+      { name: 'COD', value: 11, standard: 0 - 30 },
+      { name: '总磷', value: 0.07, standard: 0 - 0.2 }
     ]
   }
 }
@@ -229,7 +228,6 @@ const initCharts = () => {
   initWaterSourceChart()
   initWaterLevelChart()
   initWaterUsageChart()
-  initWaterQualityChart()
 }
 
 // 初始化水源类型图表
@@ -384,7 +382,7 @@ const initWaterUsageChart = () => {
     },
     xAxis: {
       type: 'category',
-      boundaryGap: false,
+      boundaryGap: true,
       data: waterUsageData.time,
       axisLine: {
         lineStyle: {
@@ -422,17 +420,36 @@ const initWaterUsageChart = () => {
             { offset: 0, color: '#00f2fe' },
             { offset: 1, color: '#4facfe' }
           ])
+        },
+        // 设置柱状图宽度
+        barWidth: '30%',
+        // 为柱状图数据点添加位置偏移
+        position: function (params) {
+          // 向右移动15%的宽度
+          return [params[0] + 0.15, params[1]];
         }
       },
       {
         name: '预测用水量',
         type: 'line',
-        data: waterUsageData.forecast,
+        data: waterUsageData.forecast.map((value, index) => {
+          // 为折线图数据点添加位置偏移
+          return {
+            value: value,
+            itemStyle: {
+              color: '#00a2ff'
+            },
+            // 向右偏移
+            offset: [15, 0]
+          };
+        }),
         smooth: true,
         lineStyle: {
           color: '#00a2ff',
           width: 2
-        }
+        },
+        symbol: 'circle',
+        symbolSize: 8
       }
     ]
   }
@@ -789,7 +806,7 @@ const mapReset = () => {
 // 切换选中区域
 const selectRegion = (regionName: string | null) => {
   selectedRegion.value = regionName
-  
+
   // 更新所有图表的数据
   updateAllCharts()
 }
@@ -798,7 +815,7 @@ const selectRegion = (regionName: string | null) => {
 const updateAllCharts = () => {
   // 根据选中的区域获取对应的数据
   const regionData = selectedRegion.value ? regionSpecificData[selectedRegion.value as keyof typeof regionSpecificData] : null
-  
+
   if (regionData) {
     // 更新各数据集
     waterSourceData = JSON.parse(JSON.stringify(regionData.waterSourceData))
@@ -812,7 +829,7 @@ const updateAllCharts = () => {
     waterUsageData = JSON.parse(JSON.stringify(originalData.waterUsageData))
     waterQualityData = JSON.parse(JSON.stringify(originalData.waterQualityData))
   }
-  
+
   // 重新渲染所有图表
   renderAllCharts()
 }
@@ -822,7 +839,6 @@ const renderAllCharts = () => {
   initWaterSourceChart()
   initWaterLevelChart()
   initWaterUsageChart()
-  initWaterQualityChart()
 }
 
 // 监听选中区域变化
@@ -914,8 +930,8 @@ onUnmounted(() => {
             <!-- 水资源类型选择器 -->
             <div class="water-type-selector">
               <button v-for="(config, type) in waterTypeConfig" :key="type"
-                :class="['water-type-btn', { active: currentWaterType === type }]"
-                :style="{ '--color': config.color }" @click="changeWaterType(type)">
+                :class="['water-type-btn', { active: currentWaterType === type }]" :style="{ '--color': config.color }"
+                @click="changeWaterType(type)">
                 {{ config.name }}
               </button>
             </div>
@@ -959,17 +975,6 @@ onUnmounted(() => {
                 </div>
                 <div id="waterUsageChart" class="chart-container"></div>
               </div>
-
-              <!-- 一排显示的图表 -->
-              <div class="charts-row">
-                <!-- 水质监测图表 -->
-                <div class="chart-card row-chart">
-                  <div class="chart-header">
-                    <h3>水质监测</h3>
-                  </div>
-                  <div id="waterQualityChart" class="chart-container row-chart-container"></div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -992,9 +997,11 @@ onUnmounted(() => {
   0% {
     box-shadow: 0 0 5px var(--color, #4facfe), 0 0 10px var(--color, #4facfe);
   }
+
   50% {
     box-shadow: 0 0 20px var(--color, #4facfe), 0 0 30px var(--color, #4facfe);
   }
+
   100% {
     box-shadow: 0 0 5px var(--color, #4facfe), 0 0 10px var(--color, #4facfe);
   }
@@ -1145,13 +1152,14 @@ onUnmounted(() => {
 
 /* 地图样式 */
 .map-card {
+  color: #000;
   display: flex;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  width: 100%;
+  width: 93%;
 }
 
 #map {

@@ -11,13 +11,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-defineProps<{
+// 在顶层定义props和emits
+const props = defineProps<{
   message: string
   type?: 'success' | 'error' | 'warning' | 'info'
   duration?: number
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   close: []
 }>()
 
@@ -25,36 +26,32 @@ const visible = ref(false)
 
 // 获取对应类型的图标
 const getIcon = () => {
-  const { type } = defineProps()
   const iconMap: Record<string, string> = {
     'success': '✓',
     'error': '×',
     'warning': '⚠️',
     'info': 'ℹ️'
   }
-  return iconMap[type || 'info']
+  return iconMap[props.type || 'info']
 }
 
 // 关闭消息
 const close = () => {
   visible.value = false
-  const emit = defineEmits()
   emit('close')
 }
 
 // 组件挂载后显示消息
 onMounted(() => {
   visible.value = true
-  const { duration } = defineProps()
   
   // 设置自动关闭定时器
-  if (duration !== 0) {
+  if (props.duration !== 0) {
     setTimeout(() => {
       close()
-    }, duration || 3000)
+    }, props.duration || 3000)
   }
-})
-</script>
+});</script>
 
 <style scoped>
 .message-container {

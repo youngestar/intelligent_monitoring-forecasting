@@ -8,10 +8,10 @@ const photovoltaicChartRef = ref<HTMLDivElement>()
 const waterInflowChartRef = ref<HTMLDivElement>()
 const powerComparisonChartRef = ref<HTMLDivElement>()
 
-// 光伏出力数据（拟合数据）
+// 光伏出力数据（拟合数据） - 从实时时间开始
 const generatePhotovoltaicData = () => {
   const data = []
-  const baseTime = new Date(2001, 0, 1).getTime() // 从2001年1月1日开始
+  const baseTime = new Date().getTime() // 从当前实时时间开始
   const interval = 90 * 24 * 60 * 60 * 1000 // 90天间隔
 
   for (let i = 0; i < 20; i++) {
@@ -24,10 +24,10 @@ const generatePhotovoltaicData = () => {
   return data
 }
 
-// 入库流量数据（拟合数据）
+// 入库流量数据（拟合数据） - 从实时时间开始
 const generateWaterInflowData = () => {
   const data = []
-  const baseTime = new Date(2001, 0, 1).getTime()
+  const baseTime = new Date().getTime() // 从当前实时时间开始
   const interval = 90 * 24 * 60 * 60 * 1000
 
   for (let i = 0; i < 20; i++) {
@@ -40,11 +40,11 @@ const generateWaterInflowData = () => {
   return data
 }
 
-// 电力对比数据（拟合数据）
+// 电力对比数据（拟合数据） - 从实时时间开始
 const generatePowerComparisonData = () => {
   const photovoltaicData = []
   const waterPowerData = []
-  const baseTime = new Date(2001, 0, 1).getTime()
+  const baseTime = new Date().getTime() // 从当前实时时间开始
   const interval = 90 * 24 * 60 * 60 * 1000
 
   for (let i = 0; i < 20; i++) {

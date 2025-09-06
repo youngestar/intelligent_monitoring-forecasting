@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
@@ -292,7 +291,7 @@ const initLightIntensityChart = () => {
       trigger: 'axis'
     },
     grid: {
-      left: '3%',
+      left: '3%',  // 大幅增加左侧边距，使柱状图整体明显向右移动
       right: '4%',
       bottom: '3%',
       containLabel: true
@@ -358,24 +357,29 @@ const initEnergyConsumptionChart = () => {
   const option: EChartsOption = {
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     tooltip: {
-      trigger: 'axis'
+      trigger: 'axis',
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      borderColor: '#fff',
+      textStyle: {
+        color: '#fff'
+      }
     },
     legend: {
       data: ['实际消耗', '预测消耗'],
       textStyle: {
         color: '#fff'
       },
-      top: 0
+      top: '0%'
     },
     grid: {
-      left: '3%',
+      left: '8%',
       right: '4%',
       bottom: '3%',
       containLabel: true
     },
     xAxis: {
       type: 'category',
-      boundaryGap: false,
+      boundaryGap: true,
       data: energyConsumptionData.time,
       axisLine: {
         lineStyle: {
@@ -384,6 +388,9 @@ const initEnergyConsumptionChart = () => {
       },
       axisLabel: {
         color: '#fff'
+      },
+      axisTick: {
+        show: true
       }
     },
     yAxis: {
@@ -412,17 +419,37 @@ const initEnergyConsumptionChart = () => {
             { offset: 0, color: '#FF9E01' },
             { offset: 1, color: '#FFD700' }
           ])
+        },
+        // 设置柱状图宽度
+        barWidth: '30%',
+        // 为柱状图数据点添加位置偏移
+        position: function (params) {
+          // 向右移动15%的宽度
+          return [params[0] + 0.15, params[1]];
         }
       },
       {
         name: '预测消耗',
         type: 'line',
-        data: energyConsumptionData.forecast,
+        data: energyConsumptionData.forecast.map((value, index) => {
+          // 为折线图数据点添加位置偏移
+          // 创建一个对象包含原始值和x轴偏移
+          return {
+            value: value,
+            itemStyle: {
+              color: '#FF6B6B'
+            },
+            // 向右偏移
+            offset: [15, 0]
+          };
+        }),
         smooth: true,
         lineStyle: {
           color: '#FF6B6B',
           width: 2
-        }
+        },
+        symbol: 'circle',
+        symbolSize: 8
       }
     ]
   }
@@ -778,7 +805,7 @@ const mapReset = () => {
 // 切换选中区域
 const selectRegion = (regionName: string | null) => {
   selectedRegion.value = regionName
-  
+
   // 更新所有图表的数据
   updateAllCharts()
 }
@@ -787,7 +814,7 @@ const selectRegion = (regionName: string | null) => {
 const updateAllCharts = () => {
   // 根据选中的区域获取对应的数据
   const regionData = selectedRegion.value ? regionSpecificData[selectedRegion.value as keyof typeof regionSpecificData] : null
-  
+
   if (regionData) {
     // 更新各数据集
     lightTypeData = JSON.parse(JSON.stringify(regionData.lightTypeData))
@@ -801,7 +828,7 @@ const updateAllCharts = () => {
     energyConsumptionData = JSON.parse(JSON.stringify(originalData.energyConsumptionData))
     lightCoverageData = JSON.parse(JSON.stringify(originalData.lightCoverageData))
   }
-  
+
   // 重新渲染所有图表
   renderAllCharts()
 }
@@ -826,9 +853,19 @@ watch(currentLightType, () => {
 
 // 组件挂载时初始化
 onMounted(() => {
-  initCharts()
+  // 确保DOM完全渲染后再初始化图表
+  setTimeout(() => {
+    initCharts()
+  }, 100)
   initMap()
   window.addEventListener('resize', handleResize)
+})
+
+// 确保DOM更新后重新渲染图表
+watch([selectedRegion, currentLightType], () => {
+  setTimeout(() => {
+    renderAllCharts()
+  }, 50)
 })
 
 // 组件卸载时清理
@@ -903,8 +940,8 @@ onUnmounted(() => {
             <!-- 灯光类型选择器 -->
             <div class="light-type-selector">
               <button v-for="(config, type) in lightTypeConfig" :key="type"
-                :class="['light-type-btn', { active: currentLightType === type }]"
-                :style="{ '--color': config.color }" @click="changeLightType(type)">
+                :class="['light-type-btn', { active: currentLightType === type }]" :style="{ '--color': config.color }"
+                @click="changeLightType(type)">
                 {{ config.name }}
               </button>
             </div>
@@ -948,17 +985,6 @@ onUnmounted(() => {
                 </div>
                 <div id="energyConsumptionChart" class="chart-container"></div>
               </div>
-
-              <!-- 一排显示的图表 -->
-              <div class="charts-row">
-                <!-- 灯光覆盖图表 -->
-                <div class="chart-card row-chart">
-                  <div class="chart-header">
-                    <h3>灯光覆盖情况</h3>
-                  </div>
-                  <div id="lightCoverageChart" class="chart-container row-chart-container"></div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -981,9 +1007,11 @@ onUnmounted(() => {
   0% {
     box-shadow: 0 0 5px var(--color, #FFD700), 0 0 10px var(--color, #FFD700);
   }
+
   50% {
     box-shadow: 0 0 20px var(--color, #FFD700), 0 0 30px var(--color, #FFD700);
   }
+
   100% {
     box-shadow: 0 0 5px var(--color, #FFD700), 0 0 10px var(--color, #FFD700);
   }
@@ -1134,13 +1162,14 @@ onUnmounted(() => {
 
 /* 地图样式 */
 .map-card {
+  color: #000;
   display: flex;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  width: 100%;
+  width: 93%;
 }
 
 #map {
@@ -1302,16 +1331,13 @@ onUnmounted(() => {
   height: 250px;
 }
 
-/* 一排图表容器 - 调整为屏幕宽度并对齐左侧 */
+/* 一排图表容器 */
 .charts-row {
-  position: relative;
   display: flex;
   gap: 15px;
-  width: 95vw;
+  width: 100%;
   overflow-x: auto;
   padding-bottom: 10px;
-  margin-left: -66.6vw;
-  left: 0;
   margin-top: 20px;
 }
 

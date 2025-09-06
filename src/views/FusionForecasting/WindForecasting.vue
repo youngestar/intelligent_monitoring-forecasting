@@ -56,22 +56,35 @@
         <div class="map-section">
           <div class="map-controls">
             <div class="energy-type-selector">
-              <button 
-                v-for="type in windFarmTypes" 
-                :key="type.value"
+              <button v-for="type in windFarmTypes" :key="type.value"
                 :class="['energy-type-btn', { active: selectedWindType === type.value }]"
-                @click="changeWindType(type.value)"
-              >
+                @click="changeWindType(type.value)">
                 {{ type.label }}
               </button>
             </div>
             <div class="map-toolbar">
-              <button class="toolbar-btn" @click="mapZoomIn"><i class="el-icon-plus"></i></button>
-              <button class="toolbar-btn" @click="mapZoomOut"><i class="el-icon-minus"></i></button>
-              <button class="toolbar-btn" @click="resetMap"><i class="el-icon-refresh"></i></button>
+              <button class="toolbar-btn" @click="mapZoomIn">
+                <Plus />
+              </button>
+              <button class="toolbar-btn" @click="mapZoomOut">
+                <Minus />
+              </button>
+              <button class="toolbar-btn" @click="resetMap">
+                <Refresh />
+              </button>
+            </div>
+            <div class="layer-switch-container">
+              <button :class="['layer-btn', 'toolbar-btn', { active: currentMapLayer === 'normal' }]"
+                @click="switchMapLayer('normal')">
+                <MapLocation />
+              </button>
+              <button :class="['layer-btn', 'toolbar-btn', { active: currentMapLayer === 'satellite' }]"
+                @click="switchMapLayer('satellite')">
+                <PictureOutline />
+              </button>
             </div>
           </div>
-          <div id="windMap" class="map-container"></div>
+          <div id="windMap" class="map-container" ref="mapRef"></div>
         </div>
 
         <!-- 风电预测趋势图 -->
@@ -90,9 +103,35 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import * as echarts from 'echarts';
+import { Plus, Minus, Refresh, MapLocation, Picture as PictureOutline } from '@element-plus/icons-vue';
+
+// 扩展Window接口以支持AMap全局变量
+declare global {
+  interface Window {
+    AMap: AMapInstance;
+    _AMapSecurityConfig?: {
+      securityJsCode: string;
+    };
+  }
+}
+
+// 声明AMap全局变量类型
+interface AMapInstance {
+  Map: any
+  Marker: any
+  InfoWindow: any
+  ToolBar: any
+  Scale: any
+  TileLayer: {
+    Satellite: any
+  }
+  Size: any
+  Pixel: any
+  Icon: any
+}
 
 // 日期显示
 const currentDate = computed(() => {
@@ -125,11 +164,11 @@ const windStationsData = ref([
 ]);
 
 // 图表实例
-let windDirectionChart = null;
-let efficiencyRankingChart = null;
-let forecastTrendChart = null;
-let windSpeedChart = null;
-let AMapInstance = null;
+let windDirectionChart: echarts.ECharts | null = null;
+let efficiencyRankingChart: echarts.ECharts | null = null;
+let forecastTrendChart: echarts.ECharts | null = null;
+let windSpeedChart: echarts.ECharts | null = null;
+let mapInstance: any | null = null;
 
 // 风向风速数据
 const windDirectionData = [
@@ -203,7 +242,7 @@ const initWindDirectionChart = () => {
   const chartDom = document.getElementById('windDirectionChart');
   if (chartDom) {
     windDirectionChart = echarts.init(chartDom);
-    
+
     const option = {
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
       tooltip: {
@@ -219,7 +258,7 @@ const initWindDirectionChart = () => {
             borderRadius: 10,
             borderColor: '#fff',
             borderWidth: 2,
-            color: function(params) {
+            color: function (params: any) {
               const colorList = ['#36CFC9', '#5B8FF9', '#5D7092', '#F6BD16', '#F08664', '#D9D9D9', '#868484', '#5B8FF9'];
               return colorList[params.dataIndex];
             }
@@ -242,7 +281,7 @@ const initWindDirectionChart = () => {
         }
       ]
     };
-    
+
     windDirectionChart.setOption(option);
   }
 };
@@ -252,7 +291,7 @@ const initEfficiencyRankingChart = () => {
   const chartDom = document.getElementById('efficiencyRankingChart');
   if (chartDom) {
     efficiencyRankingChart = echarts.init(chartDom);
-    
+
     const option = {
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
       tooltip: {
@@ -283,7 +322,7 @@ const initEfficiencyRankingChart = () => {
           type: 'bar',
           data: efficiencyData.map(item => item.value).reverse(),
           itemStyle: {
-            color: function(params) {
+            color: function (params: any) {
               const value = params.value;
               if (value >= 90) return '#00B42A';
               else if (value >= 80) return '#1890FF';
@@ -300,7 +339,7 @@ const initEfficiencyRankingChart = () => {
         }
       ]
     };
-    
+
     efficiencyRankingChart.setOption(option);
   }
 };
@@ -310,7 +349,7 @@ const initForecastTrendChart = () => {
   const chartDom = document.getElementById('forecastTrendChart');
   if (chartDom) {
     forecastTrendChart = echarts.init(chartDom);
-    
+
     const option = {
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
       tooltip: {
@@ -395,7 +434,7 @@ const initForecastTrendChart = () => {
         }
       ]
     };
-    
+
     forecastTrendChart.setOption(option);
   }
 };
@@ -405,7 +444,7 @@ const initWindSpeedChart = () => {
   const chartDom = document.getElementById('windSpeedChart');
   if (chartDom) {
     windSpeedChart = echarts.init(chartDom);
-    
+
     const option = {
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
       tooltip: {
@@ -460,38 +499,58 @@ const initWindSpeedChart = () => {
         };
       })
     };
-    
+
     windSpeedChart.setOption(option);
   }
 };
 
-// 地图配置
+// 地图配置项
 const mapConfig = {
-  key: 'your_amap_key', // 替换为您的高德地图API密钥
+  // 使用与FusionForecasting.vue相同的有效API密钥
+  apiKey: '1c8fb5781411703ac5c3343201e0ab99',
+  securityConfig: {
+    securityJsCode: '8468351a95a828e0700d4aaa085c3551'
+  },
   center: [110.78, 31.17], // 湖北省宜昌市兴山县中心坐标
   zoom: 11
 };
 
-// 加载地图脚本
+// 地图相关变量
+const mapRef = ref<HTMLDivElement | null>(null);
+let AMap: AMapInstance | null = null;
+// mapInstance变量已在文件上方声明
+let normalLayer: any = null;
+let satelliteLayer: any = null;
+let markers = new Map<string, any>(); // 用于存储和管理地图标记
+// 当前地图图层类型
+const currentMapLayer = ref<'normal' | 'satellite'>('normal');
+
+// 加载高德地图API
 const loadMapScript = () => {
   return new Promise((resolve, reject) => {
+    // 设置安全配置
+    window._AMapSecurityConfig = mapConfig.securityConfig;
+
+    // 检查是否已经加载过高德地图API
     if (window.AMap) {
-      resolve(window.AMap);
+      AMap = window.AMap;
+      console.log('AMap API already loaded');
+      resolve(AMap);
       return;
     }
-    
+
+    // 创建script标签加载高德地图API
     const script = document.createElement('script');
     script.type = 'text/javascript';
-    script.src = `https://webapi.amap.com/maps?v=1.4.15&key=${mapConfig.key}&plugin=AMap.ToolBar,AMap.Scale,AMap.Geocoder`;
-    script.onerror = reject;
+    script.src = `https://webapi.amap.com/maps?v=2.0&key=${mapConfig.apiKey}&plugin=AMap.Scale,AMap.ToolBar,AMap.TileLayer,AMap.TileLayer.Satellite`;
     script.onload = () => {
-      if (window.AMap) {
-        resolve(window.AMap);
-      } else {
-        reject(new Error('地图API加载失败'));
-      }
+      AMap = window.AMap;
+      console.log('AMap API loaded successfully');
+      resolve(AMap);
     };
-    
+    script.onerror = (error) => {
+      reject(new Error('高德地图API加载失败: ' + (error instanceof Error ? error.message : '未知错误')));
+    };
     document.head.appendChild(script);
   });
 };
@@ -499,10 +558,15 @@ const loadMapScript = () => {
 // 初始化地图
 const initMap = async () => {
   try {
-    const AMap = await loadMapScript();
-    
+    // 加载高德地图API
+    await loadMapScript();
+
+    // 获取地图容器
+    const mapContainer = mapRef.value;
+    if (!mapContainer || !AMap) return;
+
     // 创建地图实例
-    AMapInstance = new AMap.Map('windMap', {
+    mapInstance = new AMap.Map(mapContainer, {
       center: mapConfig.center,
       zoom: mapConfig.zoom,
       viewMode: '3D',
@@ -511,34 +575,65 @@ const initMap = async () => {
       mapStyle: 'amap://styles/darkblue', // 暗色地图主题
       features: ['road', 'point', 'bg']
     });
-    
-    // 添加地图控件
-    AMapInstance.addControl(new AMap.ToolBar({
+
+    // 添加基础控件
+    mapInstance.addControl(new AMap.ToolBar({
       position: 'RB'
     }));
-    AMapInstance.addControl(new AMap.Scale({
+    mapInstance.addControl(new AMap.Scale({
       position: 'RB'
     }));
-    
+
+    // 创建并管理图层
+    normalLayer = new (AMap.TileLayer as any)();
+    satelliteLayer = new (AMap.TileLayer.Satellite as any)();
+
+    // 初始显示标准图层
+    normalLayer.setMap(mapInstance);
+
     // 初始化标记
     updateWindFarmMarkers();
+
+    // 监听地图加载完成事件
+    mapInstance.on('complete', () => {
+      console.log('兴山县风电场地图加载完成');
+    });
+
   } catch (error) {
-    console.error('地图加载失败:', error);
+    console.error('地图初始化失败:', error);
+    // 显示错误信息
+    if (mapRef.value) {
+      mapRef.value.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #f00;">
+          <div>
+            <h3>地图加载失败</h3>
+            <p>请检查API密钥是否正确或网络连接是否正常</p>
+            <p>错误信息: ${error instanceof Error ? error.message : '未知错误'}</p>
+          </div>
+        </div>
+      `;
+    }
   }
 };
 
 // 创建信息窗口内容
-const createInfoWindowContent = (farm) => {
+interface FarmData {
+  name: string;
+  x: number;
+  y: number;
+  type: string;
+  capacity: number | string;
+  status: string;
+}
+
+const createInfoWindowContent = (farm: FarmData) => {
   return `
-    <div style="padding: 10px; min-width: 200px;">
-      <h3 style="margin: 0 0 10px 0; color: #36CFC9;">${farm.name}</h3>
-      <p><strong>类型:</strong> ${farm.type === 'mountain' ? '山地风电' : farm.type === 'plain' ? '平原风电' : '海上风电'}</p>
-      <p><strong>装机容量:</strong> ${farm.capacity} MW</p>
-      <p><strong>状态:</strong> 
-        <span style="color: ${farm.status === 'normal' ? '#00B42A' : farm.status === 'attention' ? '#FF7D00' : '#F53F3F'};">
-          ${farm.status === 'normal' ? '正常' : farm.status === 'attention' ? '注意' : '警告'}
-        </span>
-      </p>
+    <div style="width: 280px; padding: 12px; background-color: rgba(255, 255, 255, 0.95); border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
+      <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px; color: #262626;">${farm.name}</h3>
+      <div style="margin-bottom: 8px; font-size: 12px; color: #8c8c8c;">坐标: ${farm.x.toFixed(6)}, ${farm.y.toFixed(6)}</div>
+      <div style="margin-bottom: 4px; font-size: 14px;"><span style="color: #1890ff; font-weight: 500;">类型: </span>${farm.type === 'mountain' ? '山地风电' : farm.type === 'plain' ? '平原风电' : '海上风电'}</div>
+      <div style="margin-bottom: 4px; font-size: 14px;"><span style="color: #52c41a; font-weight: 500;">装机容量: </span>${farm.capacity} MW</div>
+      <div style="margin-bottom: 4px; font-size: 14px;"><span style="color: ${farm.status === 'normal' ? '#52c41a' : farm.status === 'attention' ? '#faad14' : '#ff4d4f'}; font-weight: 500;">状态: </span>${farm.status === 'normal' ? '正常' : farm.status === 'attention' ? '注意' : '警告'}</div>
     </div>
   `;
 };
@@ -546,78 +641,197 @@ const createInfoWindowContent = (farm) => {
 // 更新风电场标记
 const updateWindFarmMarkers = () => {
   // 清除现有标记
-  if (AMapInstance) {
-    AMapInstance.clearMap();
+  if (mapInstance) {
+    mapInstance.clearMap();
   }
-  
+
   // 筛选符合当前类型的风电场
-  const filteredFarms = selectedWindType.value === 'all' 
-    ? windFarmLocations 
+  const filteredFarms = selectedWindType.value === 'all'
+    ? windFarmLocations
     : windFarmLocations.filter(farm => farm.type === selectedWindType.value);
-  
+
   // 添加新标记
+  // 先清除现有标记
+  markers.forEach(marker => {
+    if (marker && typeof marker.setMap === 'function') {
+      marker.setMap(null);
+    }
+  });
+  markers.clear();
+
+  // 遍历农场数据添加新标记
   filteredFarms.forEach(farm => {
-    if (!AMapInstance || !window.AMap) return;
-    
-    // 创建自定义标记
-    const marker = new AMap.Marker({
-      position: [farm.x, farm.y],
-      title: farm.name,
-      icon: {
-        size: new AMap.Size(36, 36),
-        image: `https://webapi.amap.com/theme/v1.3/markers/n/${farm.status === 'normal' ? 'green' : farm.status === 'attention' ? 'orange' : 'red'}_circle.png`,
-        imageSize: new AMap.Size(36, 36)
-      },
-      offset: new AMap.Pixel(-18, -18)
-    });
-    
-    // 添加标记到地图
-    AMapInstance.add(marker);
-    
-    // 创建信息窗口
-    const infoWindow = new AMap.InfoWindow({
-      content: createInfoWindowContent(farm),
-      offset: new AMap.Pixel(0, -30)
-    });
-    
-    // 点击标记显示信息窗口
-    marker.on('click', () => {
-      infoWindow.open(AMapInstance, marker.getPosition());
-    });
+    if (!mapInstance || !window.AMap || !AMap || !AMap.Marker) return;
+
+    // 根据状态设置图标颜色
+    let iconColor = '#00B42A'; // 绿色，正常状态
+    let statusText = '正常';
+    if (farm.status === 'attention') {
+      iconColor = '#FF7D00'; // 橙色，注意状态
+      statusText = '注意';
+    } else if (farm.status === 'warning') {
+      iconColor = '#F53F3F'; // 红色，警告状态
+      statusText = '警告';
+    }
+
+    // 使用 FusionForecasting 风格的自定义 HTML 标记方式
+    // 这种方式比 SVG 数据 URL 更简单可靠，且易于样式控制
+    const markerContent = `
+      <div class="custom-marker" style="position: relative; display: inline-block;">
+        <div class="marker-icon" style="
+          background-color: ${iconColor};
+          color: white;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: transform 0.3s ease;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          border: 2px solid white;
+        ">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white">
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <div class="marker-label" style="
+          position: absolute;
+          bottom: -30px;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: rgba(0, 0, 0, 0.7);
+          color: white;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          white-space: nowrap;
+          pointer-events: none;
+        ">
+          ${farm.name}: ${statusText}
+        </div>
+      </div>
+    `;
+
+    // 创建标记点并添加到地图
+    try {
+      const marker = new AMap.Marker({
+        position: [farm.x, farm.y],
+        title: `${farm.name} - 状态: ${statusText}`,
+        content: markerContent, // 使用HTML内容作为标记
+        offset: AMap.Pixel ? new AMap.Pixel(-18, -18) : [-18, -18],
+        // 添加动画效果
+        animation: 'AMAP_ANIMATION_DROP',
+        // 提升点击优先级
+        zIndex: 100
+      });
+
+      // 添加标记到地图
+      mapInstance.add(marker);
+
+      // 将标记存储到Map中以便管理
+      markers.set(farm.id.toString(), marker);
+
+      // 创建信息窗口
+      let infoWindow: any = null;
+      if (AMap && AMap.InfoWindow) {
+        infoWindow = new AMap.InfoWindow({
+          content: createInfoWindowContent(farm),
+          offset: AMap.Pixel ? new AMap.Pixel(0, -30) : [0, -30],
+          closeWhenClickMap: true
+        });
+      }
+
+      // 点击标记显示信息窗口
+      if (marker.on && infoWindow) {
+        marker.on('click', (e: any) => {
+          // 阻止事件冒泡，避免触发地图点击事件
+          if (e && typeof e.stopPropagation === 'function') {
+            e.stopPropagation();
+          }
+          infoWindow.open(mapInstance, marker.getPosition());
+        });
+
+        // 绑定鼠标悬停事件 - 放大效果
+        marker.on('mouseover', () => {
+          const iconElement = (marker as any)._content?.querySelector('.marker-icon');
+          if (iconElement) {
+            iconElement.style.transform = 'scale(1.2)';
+            iconElement.style.zIndex = '100';
+          }
+        });
+
+        // 鼠标离开时恢复原始大小
+        marker.on('mouseout', () => {
+          const iconElement = (marker as any)._content?.querySelector('.marker-icon');
+          if (iconElement) {
+            iconElement.style.transform = 'scale(1)';
+            iconElement.style.zIndex = '10';
+          }
+        });
+      }
+    } catch (error) {
+      console.error('创建标记失败:', error);
+    }
   });
 };
 
 // 切换风电场类型
-const changeWindType = (type) => {
+const changeWindType = (type: string) => {
   selectedWindType.value = type;
   updateWindFarmMarkers();
 };
 
 // 地图缩放
 const mapZoomIn = () => {
-  if (AMapInstance) {
-    const currentZoom = AMapInstance.getZoom();
+  if (mapInstance) {
+    const currentZoom = mapInstance.getZoom();
     if (currentZoom < 18) {
-      AMapInstance.setZoom(currentZoom + 1);
+      mapInstance.setZoom(currentZoom + 1);
     }
   }
 };
 
 const mapZoomOut = () => {
-  if (AMapInstance) {
-    const currentZoom = AMapInstance.getZoom();
+  if (mapInstance) {
+    const currentZoom = mapInstance.getZoom();
     if (currentZoom > 3) {
-      AMapInstance.setZoom(currentZoom - 1);
+      mapInstance.setZoom(currentZoom - 1);
     }
   }
 };
 
 // 重置地图
 const resetMap = () => {
-  if (AMapInstance) {
-    AMapInstance.setCenter(mapConfig.center);
-    AMapInstance.setZoom(mapConfig.zoom);
+  if (mapInstance) {
+    mapInstance.setCenter(mapConfig.center);
+    mapInstance.setZoom(mapConfig.zoom);
   }
+};
+
+// 切换地图图层
+const changeMapLayer = (layerType: 'normal' | 'satellite') => {
+  if (!mapInstance || !normalLayer || !satelliteLayer) return;
+
+  currentMapLayer.value = layerType;
+
+  if (layerType === 'normal') {
+    // 切换到标准地图图层
+    satelliteLayer.setMap(null);
+    normalLayer.setMap(mapInstance);
+  } else {
+    // 切换到卫星地图图层
+    normalLayer.setMap(null);
+    satelliteLayer.setMap(mapInstance);
+  }
+};
+
+defineExpose({ changeMapLayer });
+
+// 图层切换按钮点击事件处理
+const switchMapLayer = (layerType: 'normal' | 'satellite') => {
+  changeMapLayer(layerType);
 };
 
 // 处理窗口大小变化
@@ -627,10 +841,10 @@ const handleResize = () => {
   if (efficiencyRankingChart) efficiencyRankingChart.resize();
   if (forecastTrendChart) forecastTrendChart.resize();
   if (windSpeedChart) windSpeedChart.resize();
-  
+
   // 重新调整地图大小
-  if (AMapInstance) {
-    // 实际项目中调用地图API的resize方法
+  if (mapInstance) {
+    mapInstance.resize();
   }
 };
 
@@ -648,7 +862,7 @@ onUnmounted(() => {
   if (efficiencyRankingChart) efficiencyRankingChart.dispose();
   if (forecastTrendChart) forecastTrendChart.dispose();
   if (windSpeedChart) windSpeedChart.dispose();
-  
+
   // 移除事件监听
   window.removeEventListener('resize', handleResize);
 });
@@ -657,11 +871,11 @@ onUnmounted(() => {
 <style scoped>
 .wind-forecasting-container {
   width: 100%;
-  height: 100vh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   color: #fff;
-  padding: 20px;
+  padding: 15px;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .header-title {
@@ -685,14 +899,17 @@ onUnmounted(() => {
 
 .main-content {
   display: flex;
-  gap: 20px;
-  height: calc(100% - 80px);
+  gap: 15px;
+  height: calc(100% - 70px);
+  overflow: hidden;
 }
 
-.left-panel, .right-panel {
+.left-panel,
+.right-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
+  overflow: hidden;
 }
 
 .left-panel {
@@ -716,6 +933,10 @@ onUnmounted(() => {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.map-section {
+  color: #000;
 }
 
 .card-title {
@@ -871,7 +1092,7 @@ onUnmounted(() => {
   height: 36px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: #000;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -885,9 +1106,45 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.2);
 }
 
+.toolbar-btn.active {
+  background: #36CFC9;
+  color: #000;
+  border-color: #36CFC9;
+}
+
+.layer-switch-container {
+  display: flex;
+  gap: 10px;
+}
+
+.layer-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #000;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.layer-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.layer-btn.active {
+  background: #36CFC9;
+  color: #000;
+  border-color: #36CFC9;
+}
+
 .map-container {
   width: 100%;
-  height: 400px;
+  height: 350px;
   border-radius: 8px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.3);
@@ -898,11 +1155,12 @@ onUnmounted(() => {
   .main-content {
     flex-direction: column;
   }
-  
-  .left-panel, .right-panel {
+
+  .left-panel,
+  .right-panel {
     width: 100%;
   }
-  
+
   .map-container {
     height: 300px;
   }
@@ -912,19 +1170,19 @@ onUnmounted(() => {
   .wind-forecasting-container {
     padding: 10px;
   }
-  
+
   .header-title h2 {
     font-size: 20px;
   }
-  
+
   .chart-container {
     height: 150px;
   }
-  
+
   .stations-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .energy-type-selector {
     flex-wrap: wrap;
   }

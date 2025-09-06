@@ -231,126 +231,126 @@ interface AMapInstance {
 // 直接使用类型断言方式处理AMap对象
 
 // 地图相关变量
-  const mapRef = ref<HTMLDivElement | null>(null)
-  let mapInstance: any = null
-  let AMap: AMapInstance | null = null
-  let markers: Map<string, any> = new Map() // 存储地图标记实例
-  let normalLayer: any = null
-  let satelliteLayer: any = null
-  // 当前地图图层类型
-  const currentMapLayer = ref<'normal' | 'satellite'>('normal')
+const mapRef = ref<HTMLDivElement | null>(null)
+let mapInstance: any = null
+let AMap: AMapInstance | null = null
+let markers: Map<string, any> = new Map() // 存储地图标记实例
+let normalLayer: any = null
+let satelliteLayer: any = null
+// 当前地图图层类型
+const currentMapLayer = ref<'normal' | 'satellite'>('normal')
 
-  // 区域特定数据 - 模拟不同区域的数据变化
-  const regionSpecificData = {
-    '古夫镇': {
-      powerResourceData: [
-        { name: '水电', value: 65, color: '#4facfe' },
-        { name: '光伏', value: 15, color: '#ffd700' },
-        { name: '风电', value: 10, color: '#7fbf00' },
-        { name: '其他', value: 10, color: '#ff6b6b' }
-      ],
-      stationStatsData: {
-        hydropower: { count: 8, totalCapacity: 450 },
-        solar: { count: 12, totalCapacity: 180 },
-        wind: { count: 5, totalCapacity: 100 },
-        storage: { count: 3, totalCapacity: 60 }
-      },
-      powerLoadData: {
-        time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-        actual: [98, 85, 82, 105, 120, 135, 140, 125],
-        forecast: [95, 83, 80, 102, 118, 132, 138, 122]
-      },
-      electricityLoadData: {
-        time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-        actual: [90, 60, 120, 180, 150, 140, 130, 110],
-        forecast: [88, 58, 118, 178, 148, 138, 128, 108]
-      },
-      powerForecastData: [
-        { date: '18日', generated: 48.6, consumed: 45.3 },
-        { date: '19日', generated: 46.7, consumed: 44.2 },
-        { date: '20日', generated: 47.9, consumed: 45.8 }
-      ],
-      electricityDemandRanking: [
-        { name: '工业用电', demand: 1150 },
-        { name: '居民用电', demand: 920 },
-        { name: '商业用电', demand: 780 },
-        { name: '农业用电', demand: 350 },
-        { name: '公共设施用电', demand: 300 }
-      ]
+// 区域特定数据 - 模拟不同区域的数据变化
+const regionSpecificData = {
+  '古夫镇': {
+    powerResourceData: [
+      { name: '水电', value: 65, color: '#4facfe' },
+      { name: '光伏', value: 15, color: '#ffd700' },
+      { name: '风电', value: 10, color: '#7fbf00' },
+      { name: '其他', value: 10, color: '#ff6b6b' }
+    ],
+    stationStatsData: {
+      hydropower: { count: 8, totalCapacity: 450 },
+      solar: { count: 12, totalCapacity: 180 },
+      wind: { count: 5, totalCapacity: 100 },
+      storage: { count: 3, totalCapacity: 60 }
     },
-    '昭君镇': {
-      powerResourceData: [
-        { name: '水电', value: 30, color: '#4facfe' },
-        { name: '光伏', value: 50, color: '#ffd700' },
-        { name: '风电', value: 15, color: '#7fbf00' },
-        { name: '其他', value: 5, color: '#ff6b6b' }
-      ],
-      stationStatsData: {
-        hydropower: { count: 3, totalCapacity: 150 },
-        solar: { count: 20, totalCapacity: 300 },
-        wind: { count: 7, totalCapacity: 140 },
-        storage: { count: 2, totalCapacity: 40 }
-      },
-      powerLoadData: {
-        time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-        actual: [85, 75, 72, 95, 110, 125, 130, 115],
-        forecast: [82, 73, 70, 93, 108, 122, 128, 112]
-      },
-      electricityLoadData: {
-        time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-        actual: [100, 70, 140, 200, 170, 150, 140, 120],
-        forecast: [98, 68, 138, 198, 168, 148, 138, 118]
-      },
-      powerForecastData: [
-        { date: '18日', generated: 42.6, consumed: 40.3 },
-        { date: '19日', generated: 40.7, consumed: 38.2 },
-        { date: '20日', generated: 41.9, consumed: 39.8 }
-      ],
-      electricityDemandRanking: [
-        { name: '工业用电', demand: 1050 },
-        { name: '居民用电', demand: 980 },
-        { name: '商业用电', demand: 820 },
-        { name: '农业用电', demand: 380 },
-        { name: '公共设施用电', demand: 320 }
-      ]
+    powerLoadData: {
+      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+      actual: [98, 85, 82, 105, 120, 135, 140, 125],
+      forecast: [95, 83, 80, 102, 118, 132, 138, 122]
     },
-    '峡口镇': {
-      powerResourceData: [
-        { name: '水电', value: 25, color: '#4facfe' },
-        { name: '光伏', value: 20, color: '#ffd700' },
-        { name: '风电', value: 50, color: '#7fbf00' },
-        { name: '其他', value: 5, color: '#ff6b6b' }
-      ],
-      stationStatsData: {
-        hydropower: { count: 2, totalCapacity: 100 },
-        solar: { count: 8, totalCapacity: 120 },
-        wind: { count: 15, totalCapacity: 300 },
-        storage: { count: 2, totalCapacity: 40 }
-      },
-      powerLoadData: {
-        time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-        actual: [92, 80, 78, 100, 115, 130, 135, 120],
-        forecast: [90, 78, 76, 98, 113, 128, 133, 118]
-      },
-      electricityLoadData: {
-        time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-        actual: [110, 80, 130, 160, 150, 140, 130, 110],
-        forecast: [108, 78, 128, 158, 148, 138, 128, 108]
-      },
-      powerForecastData: [
-        { date: '18日', generated: 44.6, consumed: 41.3 },
-        { date: '19日', generated: 42.7, consumed: 39.2 },
-        { date: '20日', generated: 43.9, consumed: 40.8 }
-      ],
-      electricityDemandRanking: [
-        { name: '工业用电', demand: 1180 },
-        { name: '居民用电', demand: 920 },
-        { name: '商业用电', demand: 780 },
-        { name: '农业用电', demand: 420 },
-        { name: '公共设施用电', demand: 350 }
-      ]
-    }
+    electricityLoadData: {
+      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+      actual: [90, 60, 120, 180, 150, 140, 130, 110],
+      forecast: [88, 58, 118, 178, 148, 138, 128, 108]
+    },
+    powerForecastData: [
+      { date: '18日', generated: 48.6, consumed: 45.3 },
+      { date: '19日', generated: 46.7, consumed: 44.2 },
+      { date: '20日', generated: 47.9, consumed: 45.8 }
+    ],
+    electricityDemandRanking: [
+      { name: '工业用电', demand: 1150 },
+      { name: '居民用电', demand: 920 },
+      { name: '商业用电', demand: 780 },
+      { name: '农业用电', demand: 350 },
+      { name: '公共设施用电', demand: 300 }
+    ]
+  },
+  '昭君镇': {
+    powerResourceData: [
+      { name: '水电', value: 30, color: '#4facfe' },
+      { name: '光伏', value: 50, color: '#ffd700' },
+      { name: '风电', value: 15, color: '#7fbf00' },
+      { name: '其他', value: 5, color: '#ff6b6b' }
+    ],
+    stationStatsData: {
+      hydropower: { count: 3, totalCapacity: 150 },
+      solar: { count: 20, totalCapacity: 300 },
+      wind: { count: 7, totalCapacity: 140 },
+      storage: { count: 2, totalCapacity: 40 }
+    },
+    powerLoadData: {
+      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+      actual: [85, 75, 72, 95, 110, 125, 130, 115],
+      forecast: [82, 73, 70, 93, 108, 122, 128, 112]
+    },
+    electricityLoadData: {
+      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+      actual: [100, 70, 140, 200, 170, 150, 140, 120],
+      forecast: [98, 68, 138, 198, 168, 148, 138, 118]
+    },
+    powerForecastData: [
+      { date: '18日', generated: 42.6, consumed: 40.3 },
+      { date: '19日', generated: 40.7, consumed: 38.2 },
+      { date: '20日', generated: 41.9, consumed: 39.8 }
+    ],
+    electricityDemandRanking: [
+      { name: '工业用电', demand: 1050 },
+      { name: '居民用电', demand: 980 },
+      { name: '商业用电', demand: 820 },
+      { name: '农业用电', demand: 380 },
+      { name: '公共设施用电', demand: 320 }
+    ]
+  },
+  '峡口镇': {
+    powerResourceData: [
+      { name: '水电', value: 25, color: '#4facfe' },
+      { name: '光伏', value: 20, color: '#ffd700' },
+      { name: '风电', value: 50, color: '#7fbf00' },
+      { name: '其他', value: 5, color: '#ff6b6b' }
+    ],
+    stationStatsData: {
+      hydropower: { count: 2, totalCapacity: 100 },
+      solar: { count: 8, totalCapacity: 120 },
+      wind: { count: 15, totalCapacity: 300 },
+      storage: { count: 2, totalCapacity: 40 }
+    },
+    powerLoadData: {
+      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+      actual: [92, 80, 78, 100, 115, 130, 135, 120],
+      forecast: [90, 78, 76, 98, 113, 128, 133, 118]
+    },
+    electricityLoadData: {
+      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+      actual: [110, 80, 130, 160, 150, 140, 130, 110],
+      forecast: [108, 78, 128, 158, 148, 138, 128, 108]
+    },
+    powerForecastData: [
+      { date: '18日', generated: 44.6, consumed: 41.3 },
+      { date: '19日', generated: 42.7, consumed: 39.2 },
+      { date: '20日', generated: 43.9, consumed: 40.8 }
+    ],
+    electricityDemandRanking: [
+      { name: '工业用电', demand: 1180 },
+      { name: '居民用电', demand: 920 },
+      { name: '商业用电', demand: 780 },
+      { name: '农业用电', demand: 420 },
+      { name: '公共设施用电', demand: 350 }
+    ]
   }
+}
 
 // 定义能源数据类型接口
 interface EnergyItem {
@@ -1167,111 +1167,111 @@ const mapReset = () => {
 }
 
 // 切换选中区域
-  const selectRegion = (regionName: string | null) => {
-    selectedRegion.value = regionName
-    
-    // 更新所有图表的数据
-    updateAllCharts()
-    
-    // 更新地图标记样式
-    updateMarkerStyles()
-  }
+const selectRegion = (regionName: string | null) => {
+  selectedRegion.value = regionName
 
-  // 更新所有图表数据
-  const updateAllCharts = () => {
-    // 根据选中的区域获取对应的数据
-    const regionData = selectedRegion.value ? regionSpecificData[selectedRegion.value as keyof typeof regionSpecificData] : null
-    
-    if (regionData) {
-      // 更新各数据集 - 对于数组需要重新赋值而不是使用Object.assign
-      // 发电资源分布
-      powerResourceData = JSON.parse(JSON.stringify(regionData.powerResourceData))
-      // 电站统计信息
-      stationStatsData = JSON.parse(JSON.stringify(regionData.stationStatsData))
-      // 发电负荷监测
-      powerLoadData = JSON.parse(JSON.stringify(regionData.powerLoadData))
-      // 用电负荷监测
-      electricityLoadData = JSON.parse(JSON.stringify(regionData.electricityLoadData))
-      // 电量预报
-      powerForecastData = JSON.parse(JSON.stringify(regionData.powerForecastData))
-      // 用电需求排名
-      electricityDemandRanking = JSON.parse(JSON.stringify(regionData.electricityDemandRanking))
-    } else {
-      // 恢复原始数据
-      powerResourceData = JSON.parse(JSON.stringify(originalData.powerResourceData))
-      stationStatsData = JSON.parse(JSON.stringify(originalData.stationStatsData))
-      powerLoadData = JSON.parse(JSON.stringify(originalData.powerLoadData))
-      electricityLoadData = JSON.parse(JSON.stringify(originalData.electricityLoadData))
-      powerForecastData = JSON.parse(JSON.stringify(originalData.powerForecastData))
-      electricityDemandRanking = JSON.parse(JSON.stringify(originalData.electricityDemandRanking))
-    }
-    
-    // 重新渲染所有图表
-    renderAllCharts()
+  // 更新所有图表的数据
+  updateAllCharts()
+
+  // 更新地图标记样式
+  updateMarkerStyles()
+}
+
+// 更新所有图表数据
+const updateAllCharts = () => {
+  // 根据选中的区域获取对应的数据
+  const regionData = selectedRegion.value ? regionSpecificData[selectedRegion.value as keyof typeof regionSpecificData] : null
+
+  if (regionData) {
+    // 更新各数据集 - 对于数组需要重新赋值而不是使用Object.assign
+    // 发电资源分布
+    powerResourceData = JSON.parse(JSON.stringify(regionData.powerResourceData))
+    // 电站统计信息
+    stationStatsData = JSON.parse(JSON.stringify(regionData.stationStatsData))
+    // 发电负荷监测
+    powerLoadData = JSON.parse(JSON.stringify(regionData.powerLoadData))
+    // 用电负荷监测
+    electricityLoadData = JSON.parse(JSON.stringify(regionData.electricityLoadData))
+    // 电量预报
+    powerForecastData = JSON.parse(JSON.stringify(regionData.powerForecastData))
+    // 用电需求排名
+    electricityDemandRanking = JSON.parse(JSON.stringify(regionData.electricityDemandRanking))
+  } else {
+    // 恢复原始数据
+    powerResourceData = JSON.parse(JSON.stringify(originalData.powerResourceData))
+    stationStatsData = JSON.parse(JSON.stringify(originalData.stationStatsData))
+    powerLoadData = JSON.parse(JSON.stringify(originalData.powerLoadData))
+    electricityLoadData = JSON.parse(JSON.stringify(originalData.electricityLoadData))
+    powerForecastData = JSON.parse(JSON.stringify(originalData.powerForecastData))
+    electricityDemandRanking = JSON.parse(JSON.stringify(originalData.electricityDemandRanking))
   }
 
   // 重新渲染所有图表
-  const renderAllCharts = () => {
-    initPowerResourceChart()
-    initPowerLoadChart()
-    initElectricityLoadChart()
-    initPowerForecastChart()
-    initElectricityDemandChart()
-  }
+  renderAllCharts()
+}
 
-  // 更新标记样式
-  const updateMarkerStyles = () => {
-    if (markers instanceof Map) {
-      // 如果markers是Map对象
-      markers.forEach((marker, key) => {
-        if (marker && (marker as any)._icon) {
-          const icon = (marker as any)._icon
-          // 根据是否选中来改变标记样式
-          // 因为key的格式是 "energyType-name"，所以我们需要只比较name部分
-          const markerName = key.split('-')[1]
-          if (selectedRegion.value === markerName) {
-            // 选中状态样式
-            icon.style.transform = 'scale(1.2)'
-            icon.style.zIndex = '100'
-          } else {
-            // 未选中状态样式
-            icon.style.transform = 'scale(1)'
-            icon.style.zIndex = '10'
-          }
+// 重新渲染所有图表
+const renderAllCharts = () => {
+  initPowerResourceChart()
+  initPowerLoadChart()
+  initElectricityLoadChart()
+  initPowerForecastChart()
+  initElectricityDemandChart()
+}
+
+// 更新标记样式
+const updateMarkerStyles = () => {
+  if (markers instanceof Map) {
+    // 如果markers是Map对象
+    markers.forEach((marker, key) => {
+      if (marker && (marker as any)._icon) {
+        const icon = (marker as any)._icon
+        // 根据是否选中来改变标记样式
+        // 因为key的格式是 "energyType-name"，所以我们需要只比较name部分
+        const markerName = key.split('-')[1]
+        if (selectedRegion.value === markerName) {
+          // 选中状态样式
+          icon.style.transform = 'scale(1.2)'
+          icon.style.zIndex = '100'
+        } else {
+          // 未选中状态样式
+          icon.style.transform = 'scale(1)'
+          icon.style.zIndex = '10'
         }
-      })
-    } else if (typeof markers === 'object') {
-      // 如果markers是普通对象
-      Object.keys(markers).forEach(key => {
-        const marker = markers[key]
-        if (marker && (marker as any)._icon) {
-          const icon = (marker as any)._icon
-          // 根据是否选中来改变标记样式
-          // 因为key的格式是 "energyType-name"，所以我们需要只比较name部分
-          const markerName = key.split('-')[1]
-          if (selectedRegion.value === markerName) {
-            // 选中状态样式
-            icon.style.transform = 'scale(1.2)'
-            icon.style.zIndex = '100'
-          } else {
-            // 未选中状态样式
-            icon.style.transform = 'scale(1)'
-            icon.style.zIndex = '10'
-          }
+      }
+    })
+  } else if (typeof markers === 'object') {
+    // 如果markers是普通对象
+    Object.keys(markers).forEach(key => {
+      const marker = markers[key]
+      if (marker && (marker as any)._icon) {
+        const icon = (marker as any)._icon
+        // 根据是否选中来改变标记样式
+        // 因为key的格式是 "energyType-name"，所以我们需要只比较name部分
+        const markerName = key.split('-')[1]
+        if (selectedRegion.value === markerName) {
+          // 选中状态样式
+          icon.style.transform = 'scale(1.2)'
+          icon.style.zIndex = '100'
+        } else {
+          // 未选中状态样式
+          icon.style.transform = 'scale(1)'
+          icon.style.zIndex = '10'
         }
-      })
-    }
+      }
+    })
   }
+}
 
-  // 监听选中区域变化
-  watch(selectedRegion, () => {
-    // 这里可以添加额外的处理逻辑
-  })
+// 监听选中区域变化
+watch(selectedRegion, () => {
+  // 这里可以添加额外的处理逻辑
+})
 
-  // 监听能源类型变化，更新标记
-  watch(currentEnergyType, () => {
-    updateEnergyMarkers()
-  })
+// 监听能源类型变化，更新标记
+watch(currentEnergyType, () => {
+  updateEnergyMarkers()
+})
 
 // 组件挂载时初始化
 onMounted(() => {
@@ -1631,13 +1631,14 @@ onUnmounted(() => {
 
 /* 地图样式 */
 .map-card {
+  color: #000;
   display: flex;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  width: 100%;
+  width: 93%;
 }
 
 #map {

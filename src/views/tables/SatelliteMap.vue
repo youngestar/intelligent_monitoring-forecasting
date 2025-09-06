@@ -22,7 +22,7 @@ interface AMapInstance {
   Pixel: any
   Size: any
   TileLayer: { // 合并类型定义
-    new (): any // 添加构造函数签名
+    new(): any // 添加构造函数签名
     Satellite: any
     RoadNet: any
   }
@@ -48,7 +48,7 @@ let markers: Map<string, any> = new Map() // 存储地图标记实例
 // 使用Pinia store
 const mapStore = useMapStore()
 // 类型断言，确保所有需要的方法可以被正确识别
-const { 
+const {
   toggleCoordinatePicker: storeToggleCoordinatePicker,
   removeMarker: storeRemoveMarker,
   addAllPresetLocations: storeAddAllPresetLocations,
@@ -320,16 +320,24 @@ const addMarkerToMap = (markerData: MarkerData) => {
 
   // 绑定鼠标悬停事件显示删除按钮
   marker.on('mouseover', () => {
-    const deleteBtn = marker.getContent().querySelector('.delete-btn')
-    if (deleteBtn) {
-      deleteBtn.style.opacity = '1'
+    const content = marker.getContent()
+    // 检查content是否为DOM元素且支持querySelector方法
+    if (content && typeof content.querySelector === 'function') {
+      const deleteBtn = content.querySelector('.delete-btn')
+      if (deleteBtn) {
+        deleteBtn.style.opacity = '1'
+      }
     }
   })
 
   marker.on('mouseout', () => {
-    const deleteBtn = marker.getContent().querySelector('.delete-btn')
-    if (deleteBtn) {
-      deleteBtn.style.opacity = '0'
+    const content = marker.getContent()
+    // 检查content是否为DOM元素且支持querySelector方法
+    if (content && typeof content.querySelector === 'function') {
+      const deleteBtn = content.querySelector('.delete-btn')
+      if (deleteBtn) {
+        deleteBtn.style.opacity = '0'
+      }
     }
   })
 
@@ -924,9 +932,10 @@ onBeforeUnmount(() => {
 }
 
 /* 确保内容不溢出 */
+/* 修改主体信息高度 */
 .info-body {
   overflow-y: auto;
-  max-height: calc(100vh - 300px);
+  max-height: calc(100vh - 200px);
   padding-right: 8px;
   margin-top: 20px;
 }

@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
@@ -211,7 +210,6 @@ const initCharts = () => {
   initEnergyDistributionChart()
   initEnergyEfficiencyChart()
   initEnergyConsumptionChart()
-  initEnergySourceChart()
 }
 
 // 初始化能源分布图表
@@ -344,7 +342,7 @@ const initEnergyConsumptionChart = () => {
       top: 0
     },
     grid: {
-      left: '3%',
+      left: '8%',
       right: '4%',
       bottom: '3%',
       containLabel: true
@@ -747,7 +745,7 @@ const mapReset = () => {
 // 切换选中区域
 const selectRegion = (regionName: string | null) => {
   selectedRegion.value = regionName
-  
+
   // 更新所有图表的数据
   updateAllCharts()
 }
@@ -756,7 +754,7 @@ const selectRegion = (regionName: string | null) => {
 const updateAllCharts = () => {
   // 根据选中的区域获取对应的数据
   const regionData = selectedRegion.value ? regionSpecificData[selectedRegion.value as keyof typeof regionSpecificData] : null
-  
+
   if (regionData) {
     // 更新各数据集
     energyDistributionData = JSON.parse(JSON.stringify(regionData.energyDistributionData))
@@ -770,7 +768,7 @@ const updateAllCharts = () => {
     energyConsumptionData = JSON.parse(JSON.stringify(originalData.energyConsumptionData))
     energySourceData = JSON.parse(JSON.stringify(originalData.energySourceData))
   }
-  
+
   // 重新渲染所有图表
   renderAllCharts()
 }
@@ -916,17 +914,6 @@ onUnmounted(() => {
                   <h3>能源消耗监测</h3>
                 </div>
                 <div id="energyConsumptionChart" class="chart-container"></div>
-              </div>
-
-              <!-- 一排显示的图表 -->
-              <div class="charts-row">
-                <!-- 能源来源图表 -->
-                <div class="chart-card row-chart">
-                  <div class="chart-header">
-                    <h3>能源来源分布</h3>
-                  </div>
-                  <div id="energySourceChart" class="chart-container row-chart-container"></div>
-                </div>
               </div>
             </div>
           </div>
@@ -1096,13 +1083,14 @@ onUnmounted(() => {
 
 /* 地图样式 */
 .map-card {
+  color: #000;
   display: flex;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  width: 100%;
+  width: 93%;
 }
 
 #map {
