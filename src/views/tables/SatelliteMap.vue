@@ -28,16 +28,7 @@ interface AMapInstance {
   }
 }
 
-declare global {
-  interface Window {
-    AMap: AMapInstance
-    tempMarker: any
-    removeMarker?: (id: string) => void
-    _AMapSecurityConfig?: { // 添加安全配置属性
-      securityJsCode: string
-    }
-  }
-}
+// 使用全局类型定义
 
 // 地图DOM引用
 const mapRef = ref<HTMLDivElement | null>(null) // 允许null值

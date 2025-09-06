@@ -910,7 +910,7 @@ onMounted(() => {
 })
 
 // 监听标签页切换
-const handleTabChange = (tabName: string) => {
+const handleTabChange = (tabName: any) => {
   activeTab.value = tabName
   console.log(`切换到${tabName}标签页，更新图表数据`)
   // 切换标签页时重新初始化所有图表，使用对应的标签页数据

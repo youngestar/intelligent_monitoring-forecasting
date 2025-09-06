@@ -108,15 +108,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import * as echarts from 'echarts';
 import { Plus, Minus, Refresh, MapLocation, Picture as PictureOutline } from '@element-plus/icons-vue';
 
-// 扩展Window接口以支持AMap全局变量
-declare global {
-  interface Window {
-    AMap: AMapInstance;
-    _AMapSecurityConfig?: {
-      securityJsCode: string;
-    };
-  }
-}
+// 使用全局类型定义
 
 // 声明AMap全局变量类型
 interface AMapInstance {

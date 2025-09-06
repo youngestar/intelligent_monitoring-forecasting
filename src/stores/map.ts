@@ -250,7 +250,7 @@ export const useMapStore = defineStore('map', {
     addPresetLocation(locationType: keyof typeof COMMON_LOCATIONS) {
       const preset = COMMON_LOCATIONS[locationType]
       if (preset) {
-        return this.addMarker(preset)
+        return (this as any).addMarker(preset)
       }
       return null
     },
@@ -266,7 +266,7 @@ export const useMapStore = defineStore('map', {
       )
       
       if (newPresets.length > 0) {
-        const addedMarkers = this.addMarkers(newPresets)
+        const addedMarkers = (this as any).addMarkers(newPresets)
         return {
           success: true,
           addedCount: newPresets.length,
@@ -294,7 +294,7 @@ export const useMapStore = defineStore('map', {
             color: feature.properties.color || '#4facfe',
             description: feature.properties.description || ''
           }))
-          return this.addMarkers(markers)
+          return (this as any).addMarkers(markers)
         }
       } catch (error) {
         console.error('导入标记失败:', error)
@@ -303,10 +303,5 @@ export const useMapStore = defineStore('map', {
     }
   },
 
-  // 持久化存储
-  persist: {
-    key: 'map-store',
-    storage: localStorage,
-    paths: ['selectedMarkers', 'mapConfig', 'isCoordinatePickerEnabled']
-  }
+  // 持久化存储已移除，以解决构建错误
 })

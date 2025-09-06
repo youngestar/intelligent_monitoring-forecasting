@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import MenuView from '@/views/Home/MenuView.vue'
-import LogoView from '../views/Home/LogoView.vue'
-import HomeView from '../views/Tables/HomeView.vue'
+import MenuView from '@/views/home/MenuView.vue'
+import LogoView from '../views/home/LogoView.vue'
+import HomeView from '../views/tables/HomeView.vue'
 import { useUserStore } from '@/stores/login'
 import { ElMessage } from 'element-plus'
 
@@ -20,7 +20,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/satelliteMap',
         name: 'satelliteMap',
-        component: () => import('../views/Tables/SatelliteMap.vue'),
+        component: () => import('../views/tables/SatelliteMap.vue'),
       },
       // 融合预测相关路由
       {
@@ -96,7 +96,7 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     // 登录路由, 经过路由守卫拦截后强行进入登录
-    component: () => import('../views/Login/LoginView.vue'),
+    component: () => import('../views/login/LoginView.vue'),
   },
 ]
 

@@ -379,7 +379,8 @@ const startInterval = () => {
   }
   intervalId = setInterval(() => {
     if (!isChartSwitchingPaused.value) {
-      currentOption = currentOption === scatterOption ? barOption : scatterOption
+      // 使用any类型断言避免类型不匹配问题
+      currentOption = (currentOption === scatterOption ? barOption : scatterOption) as any
       myChart.setOption(currentOption, true)
       adjustOption()
     }
@@ -398,7 +399,8 @@ const toggleChartSwitching = () => {
 
 // 快速切换图表的函数
 const quickSwitchChart = () => {
-  currentOption = currentOption === scatterOption ? barOption : scatterOption
+  // 使用any类型断言避免类型不匹配问题
+  currentOption = (currentOption === scatterOption ? barOption : scatterOption) as any
   myChart.setOption(currentOption, true)
   // 重置计时器
   startInterval()
@@ -412,29 +414,34 @@ function adjustOption() {
   const height = window.innerHeight
   const scaleFactor = Math.min(width / 1920, height / 1080)
 
+  // 使用any类型断言避免类型检查问题
+  const option = currentOption as any
+  
   // 调整标题字体大小
-  if (currentOption.title) {
-    currentOption.title.textStyle.fontSize = 18 * scaleFactor
+  if (option.title) {
+    option.title.textStyle.fontSize = 18 * scaleFactor
   }
 
   // 调整提示框字体大小
-  if (currentOption.tooltip) {
-    currentOption.tooltip.textStyle.fontSize = 14 * scaleFactor
+  if (option.tooltip) {
+    option.tooltip.textStyle.fontSize = 14 * scaleFactor
   }
 
   // 调整图例字体大小、尺寸和内边距
-  if (currentOption.legend) {
-    currentOption.legend.textStyle.fontSize = 14 * scaleFactor
-    currentOption.legend.itemWidth = 20 * scaleFactor
-    currentOption.legend.itemHeight = 14 * scaleFactor
-    currentOption.legend.padding = [5 * scaleFactor, 10 * scaleFactor]
+  // 继续使用option变量访问属性
+  
+  if (option.legend) {
+    option.legend.textStyle.fontSize = 14 * scaleFactor
+    option.legend.itemWidth = 20 * scaleFactor
+    option.legend.itemHeight = 14 * scaleFactor
+    option.legend.padding = [5 * scaleFactor, 10 * scaleFactor]
   }
 
   // 调整 x 轴和 y 轴标签及名称字体大小、轴线宽度、刻度长度、分割线宽度
-  const adjustAxis = (axis) => {
+  const adjustAxis = (axis: any) => {
     if (axis) {
       const axes = Array.isArray(axis) ? axis : [axis]
-      axes.forEach((ax) => {
+      axes.forEach((ax: any) => {
         ax.axisLabel.fontSize = 14 * scaleFactor
         ax.nameTextStyle.fontSize = 14 * scaleFactor
         ax.axisLine.lineStyle.width = 2 * scaleFactor
@@ -443,15 +450,15 @@ function adjustOption() {
       })
     }
   }
-  adjustAxis(currentOption.xAxis)
-  adjustAxis(currentOption.yAxis)
+  adjustAxis(option.xAxis)
+  adjustAxis(option.yAxis)
 
   // 调整视觉映射组件字体大小和位置
-  if (currentOption.visualMap) {
-    currentOption.visualMap.textStyle.fontSize = 14 * scaleFactor
-    currentOption.visualMap.bottom = 10 * scaleFactor
-    currentOption.visualMap.itemWidth = 20 * scaleFactor
-    currentOption.visualMap.itemHeight = 140 * scaleFactor
+  if (option.visualMap) {
+    option.visualMap.textStyle.fontSize = 14 * scaleFactor;
+    option.visualMap.bottom = 10 * scaleFactor;
+    option.visualMap.itemWidth = 20 * scaleFactor;
+    option.visualMap.itemHeight = 140 * scaleFactor;
   }
 
   // 调整散点图散点大小

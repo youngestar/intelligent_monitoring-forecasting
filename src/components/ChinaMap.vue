@@ -97,8 +97,8 @@ const initChart = async () => {
   myChart = echarts.init(chartDom)
 
   try {
-    // 注册地图数据
-    echarts.registerMap('china', chinaMapData)
+    // 注册地图数据，使用as any避免JSON数据的类型检查问题
+    echarts.registerMap('china', chinaMapData as any)
 
     // 配置图表选项
     option = {

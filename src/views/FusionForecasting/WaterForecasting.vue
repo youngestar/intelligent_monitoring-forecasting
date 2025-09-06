@@ -423,11 +423,9 @@ const initWaterUsageChart = () => {
         },
         // 设置柱状图宽度
         barWidth: '30%',
-        // 为柱状图数据点添加位置偏移
-        position: function (params) {
-          // 向右移动15%的宽度
-          return [params[0] + 0.15, params[1]];
-        }
+        // 设置柱状图间距
+        barGap: '0%',
+        barCategoryGap: '40%'
       },
       {
         name: '预测用水量',
