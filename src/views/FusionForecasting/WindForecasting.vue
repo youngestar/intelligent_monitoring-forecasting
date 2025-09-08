@@ -863,10 +863,11 @@ onUnmounted(() => {
 <style scoped>
 .wind-forecasting-container {
   width: 100%;
+  height: 100%;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   color: #fff;
   padding: 15px;
-  overflow: hidden;
+  overflow: auto;
   box-sizing: border-box;
 }
 
@@ -892,16 +893,14 @@ onUnmounted(() => {
 .main-content {
   display: flex;
   gap: 15px;
-  height: calc(100% - 70px);
-  overflow: hidden;
+  overflow: visible;
 }
 
-.left-panel,
-.right-panel {
+.left-panel, .right-panel {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .left-panel {

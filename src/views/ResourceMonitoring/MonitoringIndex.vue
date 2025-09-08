@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import * as echarts from 'echarts'
 import type { EChartsOption } from 'echarts'
+import { ElMessage } from 'element-plus'
 
 
 
@@ -438,15 +439,7 @@ const updateStationMarkers = () => {
       if (e && typeof e.stopPropagation === 'function') {
         e.stopPropagation()
       }
-
-      // 创建信息窗口
-      const infoWindow = new (AMap as any).InfoWindow({
-        content: createInfoWindowContent(station),
-        size: new (AMap as any).Size(300, 200),
-        offset: new (AMap as any).Pixel(0, -50)
-      })
-
-      infoWindow.open(mapInstance, station.coordinates)
+      showInfoWindow(station, marker)
     })
 
     // 绑定鼠标悬停事件 - 显示标签
@@ -469,25 +462,51 @@ const updateStationMarkers = () => {
   })
 }
 
-// 创建信息窗口内容
-const createInfoWindowContent = (station: any) => {
+// 显示信息窗口
+const showInfoWindow = (station: any, marker: any) => {
+  if (!mapInstance) return
+
+  // 根据类型添加资源信息
+  let resourceTypeInfo = ''
+  if (station.type.includes('hydro') || station.type.includes('water')) {
+    resourceTypeInfo = '类型: 水电资源'
+  } else if (station.type.includes('solar') || station.type.includes('photovoltaic')) {
+    resourceTypeInfo = '类型: 光伏资源'
+  } else if (station.type.includes('wind')) {
+    resourceTypeInfo = '类型: 风电资源'
+  } else {
+    resourceTypeInfo = '类型: 电力资源'
+  }
+
   const details = stationDetailData[station.name] || { capacity: 0, generation: 0, load: 0 }
 
-  return `
-    <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-      <h3 style="margin-top: 0; color: #000000; font-size: 16px; margin-bottom: 10px;">${station.name}</h3>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>类型：</strong>${station.type === 'hydro' ? '水电站' : station.type === 'solar' ? '光伏站' : '风电站'}</p>
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>状态：</strong><span style="color: ${station.status === 'normal' ? '#00B42A' : station.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${station.status === 'normal' ? '正常' : station.status === 'attention' ? '注意' : '警告'}</span></p>
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>装机容量：</strong>${details.capacity}MW</p>
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>当前发电：</strong>${details.generation}MW</p>
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>负载率：</strong>${details.load}%</p>
+  const infoWindow = new (AMap as any).InfoWindow({
+    content: `
+      <div class="custom-info-window">
+        <div class="info-window-header">
+          <h3>${station.name}</h3>
+        </div>
+        <div class="info-window-content">
+          <p class="resource-type">${resourceTypeInfo}</p>
+          <p class="resource-status">状态: <span style="color: ${station.status === 'normal' ? '#00B42A' : station.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${station.status === 'normal' ? '正常' : station.status === 'attention' ? '注意' : '警告'}</span></p>
+          <p class="resource-capacity">装机容量: ${details.capacity}MW</p>
+          <p class="resource-generation">当前发电: ${details.generation}MW</p>
+          <p class="resource-load">负载率: ${details.load}%</p>
+          <p class="resource-coordinates">坐标: ${station.coordinates[0].toFixed(4)}, ${station.coordinates[1].toFixed(4)}</p>
+        </div>
       </div>
-      <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-        <button style="padding: 6px 12px; background: #4facfe; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">查看详情</button>
-      </div>
-    </div>
-  `
+    `,
+    size: new (AMap as any).Size(320, 200),
+    offset: new (AMap as any).Pixel(0, -50)
+  })
+
+  infoWindow.open(mapInstance, station.coordinates)
+}
+
+// 创建信息窗口内容 - 为了兼容原有代码结构保留此函数名，但内部调用showInfoWindow
+const createInfoWindowContent = (station: any) => {
+  // 这里返回的内容实际上不会被使用，因为我们在点击事件中直接调用了showInfoWindow
+  return ''
 }
 
 // 初始化分布统计图表
@@ -622,6 +641,66 @@ const handleResize = () => {
   }
 }
 
+// 刷新电站状态数据
+const refreshStationData = () => {
+  // 模拟数据刷新过程
+  // 在实际应用中，这里应该调用API获取最新数据
+  
+  // 显示加载状态
+  const refreshBtn = document.querySelector('.btn-refresh')
+  if (refreshBtn) {
+    refreshBtn.innerHTML = '刷新中...'
+    refreshBtn.disabled = true
+  }
+  
+  // 模拟网络请求延迟
+  setTimeout(() => {
+    // 随机更新一些电站状态
+    stationOperationData.forEach(station => {
+      // 随机决定是否更新该电站的状态
+      if (Math.random() > 0.7) {
+        // 定义可能的状态
+        const statuses = ['正常', '注意', '警告']
+        // 随机选择一个新状态（但不能与当前状态相同）
+        let newStatus = station.status
+        while (newStatus === station.status) {
+          newStatus = statuses[Math.floor(Math.random() * statuses.length)]
+        }
+        station.status = newStatus
+      }
+      
+      // 随机更新负载率
+      if (Math.random() > 0.5) {
+        const currentLoad = parseInt(station.load)
+        const change = Math.floor(Math.random() * 11) - 5 // -5 到 +5 的随机变化
+        const newLoad = Math.max(0, Math.min(100, currentLoad + change))
+        station.load = `${newLoad}%`
+      }
+    })
+    
+    // 更新电站统计数据
+    const normalCount = stationOperationData.filter(s => s.status === '正常').length
+    const attentionCount = stationOperationData.filter(s => s.status === '注意').length
+    const warningCount = stationOperationData.filter(s => s.status === '警告').length
+    
+    stationStatusData.normal = normalCount
+    stationStatusData.attention = attentionCount
+    stationStatusData.warning = warningCount
+    
+    // 重新初始化状态图表以显示更新后的数据
+    initStatusChart()
+    
+    // 恢复按钮状态
+    if (refreshBtn) {
+      refreshBtn.innerHTML = '刷新'
+      refreshBtn.disabled = false
+    }
+    
+    // 显示刷新成功的提示
+    ElMessage.success('电站状态数据已刷新')
+  }, 1000)
+}
+
 // 组件挂载时初始化
 onMounted(() => {
   initCharts()
@@ -646,6 +725,14 @@ onUnmounted(() => {
 
     <!-- 主内容区 -->
     <div class="main-content">
+      <!-- 顶部标题 -->
+      <div class="header-title">
+        <h2>资源监测平台</h2>
+        <div class="date-display">{{ new Date().toLocaleString('zh-CN', {
+          year: 'numeric', month: '2-digit', day:
+          '2-digit'}) }}</div>
+      </div>
+
       <!-- 内容区域 -->
       <div class="content-area">
         <!-- 左侧区域：统计图表和表格 -->
@@ -659,14 +746,13 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="table-container">
-            <div class="table-header">
-              <h3>当前电站运行状态监控</h3>
-              <div class="table-controls">
-                <button class="btn-refresh">刷新</button>
-                <button class="btn-filter">筛选</button>
+              <div class="table-header">
+                <h3>当前电站运行状态监控</h3>
+                <div class="table-controls">
+                  <button class="btn-refresh" @click="refreshStationData">刷新</button>
+                </div>
               </div>
-            </div>
-            <table class="operation-table">
+              <table class="operation-table">
               <thead>
                 <tr>
                   <th>站名</th>
@@ -775,10 +861,34 @@ onUnmounted(() => {
 <style scoped>
 .monitoring-container {
   width: 100%;
-  height: 100vh;
-  background-color: #1a1a2e;
+  background-color: #0D1136;
   color: #fff;
   overflow: hidden;
+}
+
+/* 顶部标题样式 */
+.header-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.header-title h2 {
+  margin: 0;
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.date-display {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 400;
 }
 
 /* 左侧导航样式 */
@@ -904,7 +1014,7 @@ onUnmounted(() => {
   display: flex;
   gap: 15px;
   padding: 15px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* 左侧区域样式 */
@@ -939,7 +1049,6 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 15px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }

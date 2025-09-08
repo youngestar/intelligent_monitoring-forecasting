@@ -71,7 +71,8 @@ const login = (formEI: FormInstance | undefined) => {
   if (!formEI) return
   formEI.validate((valid) => {
     if (valid) {
-      userStore.getToken()
+      // 传递用户名给getToken函数，以便在右上角显示
+      userStore.getToken(loginForm.name)
       ElMessage({
         message: '登录成功',
         type: 'success',

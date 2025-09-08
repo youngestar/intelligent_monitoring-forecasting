@@ -21,49 +21,65 @@ interface MapConfig {
   terrain: boolean
 }
 
-// 常用地点预设
+// 常用地点预设 - 仅保留兴发集团相关电站
 const COMMON_LOCATIONS = {
-  powerStation1: {
+  // 水力发电站 - 兴发集团所属
+  hydropower1: {
     name: '兴发集团兴山电站',
     coordinates: [110.7750, 31.2100] as [number, number],
-    type: 'powerStation',
+    type: 'hydropower',
     color: '#00BFFF',
-    description: '兴发集团在兴山县的主要水电站'
+    description: '兴发集团在兴山县的主要水电站',
+    capacity: '30MW'
   },
-  powerStation2: {
+  hydropower2: {
     name: '兴发集团高阳电站',
     coordinates: [110.7600, 31.1950] as [number, number],
-    type: 'powerStation',
+    type: 'hydropower',
     color: '#00BFFF',
-    description: '兴发集团高阳水电站'
+    description: '兴发集团高阳水电站',
+    capacity: '25MW'
   },
-  powerStation3: {
+  hydropower3: {
     name: '兴发集团峡口电站',
     coordinates: [110.8050, 31.0080] as [number, number],
-    type: 'powerStation',
+    type: 'hydropower',
     color: '#00BFFF',
-    description: '兴发集团峡口水电站'
+    description: '兴发集团峡口水电站',
+    capacity: '20MW'
   },
-  powerStation4: {
+  hydropower4: {
     name: '兴发集团小溪河电站',
     coordinates: [110.8800, 31.1500] as [number, number],
-    type: 'powerStation',
+    type: 'hydropower',
     color: '#00BFFF',
-    description: '位于兴山县水月寺高岚村四组，成立于2018年'
+    description: '位于兴山县水月寺高岚村四组，成立于2018年',
+    capacity: '15MW'
   },
-  powerStation5: {
+  hydropower5: {
     name: '兴发集团满天星电站',
     coordinates: [110.8200, 31.2500] as [number, number],
-    type: 'powerStation',
+    type: 'hydropower',
     color: '#00BFFF',
-    description: '成立于2005年，主要从事水力发电业务'
+    description: '成立于2005年，主要从事水力发电业务',
+    capacity: '18MW'
   },
-  powerStation6: {
+  hydropower6: {
     name: '兴发集团王家岭电站',
     coordinates: [110.8100, 30.9800] as [number, number],
-    type: 'powerStation',
+    type: 'hydropower',
     color: '#00BFFF',
-    description: '位于兴山县峡口建阳坪村二组'
+    description: '位于兴山县峡口建阳坪村二组',
+    capacity: '12MW'
+  },
+  // 新增电站 - 白鸡河电站
+  hydropower7: {
+    name: '兴发集团白鸡河电站',
+    coordinates: [110.7400, 31.2300] as [number, number],
+    type: 'hydropower',
+    color: '#00BFFF',
+    description: '成立于2002年3月，主要从事水力发电业务',
+    capacity: '8MW'
   }
 }
 

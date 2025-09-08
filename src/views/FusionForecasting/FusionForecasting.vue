@@ -1,5 +1,11 @@
 <template>
   <div class="fusion-forecasting-container">
+    <!-- 顶部标题 -->
+    <div class="header-title">
+      <h2>融合预报</h2>
+      <div class="date-display">{{ currentDate }}</div>
+    </div>
+
     <!-- 主要内容区域 -->
     <div class="main-content">
       <div class="content-area">
@@ -203,12 +209,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
-import type { EChartsOption } from 'echarts'
-
-// 当前选中的区域
-const selectedRegion = ref<string | null>(null)
+import { useMapStore } from '@/stores/map'
 
 // 声明AMap全局变量类型
 interface AMapInstance {
@@ -222,689 +225,42 @@ interface AMapInstance {
   Pixel: any
   Size: any
   TileLayer: {
+    new(): any
     Satellite: any
     RoadNet: any
   }
 }
 
-// 由于多个文件可能声明了AMap全局变量，这里不重新声明Window接口
-// 直接使用类型断言方式处理AMap对象
+// 当前日期
+const currentDate = ref('')
 
-// 地图相关变量
-const mapRef = ref<HTMLDivElement | null>(null)
+// 计算今天的日期
+const updateCurrentDate = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  currentDate.value = `${year}-${month}-${day}`
+}
+
+// 定义能源类型
+const currentEnergyType = ref<string>('all')
+const currentMapLayer = ref<string>('normal')
+const selectedRegion = ref<string>('')
+
+// 地图实例
 let mapInstance: any = null
+let markers: Map<string, any> = new Map()
 let AMap: AMapInstance | null = null
-let markers: Map<string, any> = new Map() // 存储地图标记实例
-let normalLayer: any = null
-let satelliteLayer: any = null
-// 当前地图图层类型
-const currentMapLayer = ref<'normal' | 'satellite'>('normal')
 
-// 区域特定数据 - 模拟不同区域的数据变化
-const regionSpecificData = {
-  '古夫镇': {
-    powerResourceData: [
-      { name: '水电', value: 65, color: '#4facfe' },
-      { name: '光伏', value: 15, color: '#ffd700' },
-      { name: '风电', value: 10, color: '#7fbf00' },
-      { name: '其他', value: 10, color: '#ff6b6b' }
-    ],
-    stationStatsData: {
-      hydropower: { count: 8, totalCapacity: 450 },
-      solar: { count: 12, totalCapacity: 180 },
-      wind: { count: 5, totalCapacity: 100 },
-      storage: { count: 3, totalCapacity: 60 }
-    },
-    powerLoadData: {
-      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-      actual: [98, 85, 82, 105, 120, 135, 140, 125],
-      forecast: [95, 83, 80, 102, 118, 132, 138, 122]
-    },
-    electricityLoadData: {
-      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-      actual: [90, 60, 120, 180, 150, 140, 130, 110],
-      forecast: [88, 58, 118, 178, 148, 138, 128, 108]
-    },
-    powerForecastData: [
-      { date: '18日', generated: 48.6, consumed: 45.3 },
-      { date: '19日', generated: 46.7, consumed: 44.2 },
-      { date: '20日', generated: 47.9, consumed: 45.8 }
-    ],
-    electricityDemandRanking: [
-      { name: '工业用电', demand: 1150 },
-      { name: '居民用电', demand: 920 },
-      { name: '商业用电', demand: 780 },
-      { name: '农业用电', demand: 350 },
-      { name: '公共设施用电', demand: 300 }
-    ]
-  },
-  '昭君镇': {
-    powerResourceData: [
-      { name: '水电', value: 30, color: '#4facfe' },
-      { name: '光伏', value: 50, color: '#ffd700' },
-      { name: '风电', value: 15, color: '#7fbf00' },
-      { name: '其他', value: 5, color: '#ff6b6b' }
-    ],
-    stationStatsData: {
-      hydropower: { count: 3, totalCapacity: 150 },
-      solar: { count: 20, totalCapacity: 300 },
-      wind: { count: 7, totalCapacity: 140 },
-      storage: { count: 2, totalCapacity: 40 }
-    },
-    powerLoadData: {
-      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-      actual: [85, 75, 72, 95, 110, 125, 130, 115],
-      forecast: [82, 73, 70, 93, 108, 122, 128, 112]
-    },
-    electricityLoadData: {
-      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-      actual: [100, 70, 140, 200, 170, 150, 140, 120],
-      forecast: [98, 68, 138, 198, 168, 148, 138, 118]
-    },
-    powerForecastData: [
-      { date: '18日', generated: 42.6, consumed: 40.3 },
-      { date: '19日', generated: 40.7, consumed: 38.2 },
-      { date: '20日', generated: 41.9, consumed: 39.8 }
-    ],
-    electricityDemandRanking: [
-      { name: '工业用电', demand: 1050 },
-      { name: '居民用电', demand: 980 },
-      { name: '商业用电', demand: 820 },
-      { name: '农业用电', demand: 380 },
-      { name: '公共设施用电', demand: 320 }
-    ]
-  },
-  '峡口镇': {
-    powerResourceData: [
-      { name: '水电', value: 25, color: '#4facfe' },
-      { name: '光伏', value: 20, color: '#ffd700' },
-      { name: '风电', value: 50, color: '#7fbf00' },
-      { name: '其他', value: 5, color: '#ff6b6b' }
-    ],
-    stationStatsData: {
-      hydropower: { count: 2, totalCapacity: 100 },
-      solar: { count: 8, totalCapacity: 120 },
-      wind: { count: 15, totalCapacity: 300 },
-      storage: { count: 2, totalCapacity: 40 }
-    },
-    powerLoadData: {
-      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-      actual: [92, 80, 78, 100, 115, 130, 135, 120],
-      forecast: [90, 78, 76, 98, 113, 128, 133, 118]
-    },
-    electricityLoadData: {
-      time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-      actual: [110, 80, 130, 160, 150, 140, 130, 110],
-      forecast: [108, 78, 128, 158, 148, 138, 128, 108]
-    },
-    powerForecastData: [
-      { date: '18日', generated: 44.6, consumed: 41.3 },
-      { date: '19日', generated: 42.7, consumed: 39.2 },
-      { date: '20日', generated: 43.9, consumed: 40.8 }
-    ],
-    electricityDemandRanking: [
-      { name: '工业用电', demand: 1180 },
-      { name: '居民用电', demand: 920 },
-      { name: '商业用电', demand: 780 },
-      { name: '农业用电', demand: 420 },
-      { name: '公共设施用电', demand: 350 }
-    ]
-  }
-}
+// 使用Pinia store
+const mapStore = useMapStore()
 
-// 定义能源数据类型接口
-interface EnergyItem {
-  name: string;
-  capacity: number;
-  count: number;
-  generation?: number;
-  status?: number;
-  coordinates: number[];
-}
-
-interface EnergyDataType {
-  hydropower: EnergyItem[];
-  solar: EnergyItem[];
-  wind: EnergyItem[];
-  storage: EnergyItem[];
-  [key: string]: EnergyItem[];
-}
-
-// 详细的能源数据评估 - 包含水电、光伏、风电、储能站等信息
-const energyData: EnergyDataType = {
-  // 水电数据
-  hydropower: [
-    { name: '古夫镇', capacity: 125, count: 3, generation: 85, coordinates: [110.79, 31.17] },
-    { name: '昭君镇', capacity: 89, count: 2, generation: 72, coordinates: [110.68, 31.09] },
-    { name: '峡口镇', capacity: 142, count: 4, generation: 92, coordinates: [110.72, 31.01] },
-    { name: '南阳镇', capacity: 35, count: 1, generation: 65, coordinates: [110.94, 31.21] },
-    { name: '黄粮镇', capacity: 67, count: 2, generation: 78, coordinates: [110.86, 31.12] },
-    { name: '水月寺镇', capacity: 54, count: 2, generation: 68, coordinates: [111.02, 31.07] },
-    { name: '高桥乡', capacity: 28, count: 1, generation: 59, coordinates: [110.61, 31.01] },
-    { name: '榛子乡', capacity: 22, count: 1, generation: 55, coordinates: [110.93, 31.33] }
-  ],
-  // 光伏数据
-  solar: [
-    { name: '古夫镇', capacity: 45, count: 2, generation: 78, coordinates: [110.78, 31.16] },
-    { name: '昭君镇', capacity: 38, count: 1, generation: 70, coordinates: [110.67, 31.10] },
-    { name: '峡口镇', capacity: 32, count: 1, generation: 65, coordinates: [110.71, 31.02] },
-    { name: '南阳镇', capacity: 18, count: 1, generation: 62, coordinates: [110.93, 31.20] },
-    { name: '黄粮镇', capacity: 25, count: 1, generation: 68, coordinates: [110.85, 31.11] },
-    { name: '水月寺镇', capacity: 12, count: 1, generation: 58, coordinates: [111.01, 31.08] },
-    { name: '高桥乡', capacity: 8, count: 0, generation: 45, coordinates: [110.62, 31.00] },
-    { name: '榛子乡', capacity: 10, count: 0, generation: 48, coordinates: [110.92, 31.32] }
-  ],
-  // 风电数据
-  wind: [
-    { name: '古夫镇', capacity: 18, count: 1, generation: 65, coordinates: [110.80, 31.15] },
-    { name: '昭君镇', capacity: 12, count: 0, generation: 55, coordinates: [110.69, 31.08] },
-    { name: '峡口镇', capacity: 25, count: 1, generation: 70, coordinates: [110.73, 31.03] },
-    { name: '南阳镇', capacity: 35, count: 1, generation: 75, coordinates: [110.95, 31.22] },
-    { name: '黄粮镇', capacity: 28, count: 1, generation: 68, coordinates: [110.87, 31.13] },
-    { name: '水月寺镇', capacity: 42, count: 2, generation: 82, coordinates: [111.03, 31.06] },
-    { name: '高桥乡', capacity: 15, count: 0, generation: 52, coordinates: [110.60, 31.02] },
-    { name: '榛子乡', capacity: 48, count: 2, generation: 85, coordinates: [110.94, 31.34] }
-  ],
-  // 储能站数据
-  storage: [
-    { name: '古夫镇', capacity: 25, count: 2, status: 75, coordinates: [110.79, 31.18] },
-    { name: '昭君镇', capacity: 18, count: 1, status: 65, coordinates: [110.68, 31.11] },
-    { name: '峡口镇', capacity: 22, count: 1, status: 70, coordinates: [110.72, 31.04] },
-    { name: '南阳镇', capacity: 10, count: 0, status: 55, coordinates: [110.94, 31.19] },
-    { name: '黄粮镇', capacity: 15, count: 1, status: 62, coordinates: [110.86, 31.14] },
-    { name: '水月寺镇', capacity: 12, count: 0, status: 58, coordinates: [111.02, 31.09] },
-    { name: '高桥乡', capacity: 8, count: 0, status: 52, coordinates: [110.61, 31.03] },
-    { name: '榛子乡', capacity: 10, count: 0, status: 55, coordinates: [110.93, 31.31] }
-  ]
-}
-
-// 当前显示的能源类型
-const currentEnergyType = ref<keyof EnergyTypeConfigs>('hydropower')
-
-// 能源类型配置接口
-interface EnergyTypeConfig {
-  name: string;
-  color: string;
-  unit: string;
-  field: string;
-  icon: string;
-}
-
-interface EnergyTypeConfigs {
-  hydropower: EnergyTypeConfig;
-  solar: EnergyTypeConfig;
-  wind: EnergyTypeConfig;
-  storage: EnergyTypeConfig;
-  [key: string]: EnergyTypeConfig;
-}
-
-// 能源类型配置
-const energyTypeConfig: EnergyTypeConfigs = {
-  hydropower: { name: '水电', color: '#4facfe', unit: 'MW', field: 'capacity', icon: '💧' },
-  solar: { name: '光伏', color: '#ffd700', unit: 'MW', field: 'capacity', icon: '☀️' },
-  wind: { name: '风电', color: '#7fbf00', unit: 'MW', field: 'capacity', icon: '🌬️' },
-  storage: { name: '储能', color: '#ff6b6b', unit: '%', field: 'status', icon: '🔋' }
-}
-
-// 发电资源数据
-let powerResourceData = [
-  { name: '水电', value: 45, color: '#4facfe' },
-  { name: '光伏', value: 30, color: '#ffd700' },
-  { name: '风电', value: 15, color: '#7fbf00' },
-  { name: '其他', value: 10, color: '#ff6b6b' }
-]
-
-// 站点统计数据
-let stationStatsData = {
-  hydropower: { count: 12, totalCapacity: 560 },
-  solar: { count: 8, totalCapacity: 120 },
-  wind: { count: 3, totalCapacity: 45 },
-  storage: { count: 5, totalCapacity: 100 }
-}
-
-// 用电需求排名
-let electricityDemandRanking = [
-  { name: '工业用电', demand: 1250 },
-  { name: '居民用电', demand: 980 },
-  { name: '商业用电', demand: 750 },
-  { name: '农业用电', demand: 320 },
-  { name: '公共设施用电', demand: 280 }
-]
-
-// 电量预报数据
-let powerForecastData = [
-  { date: '18日', generated: 45.6, consumed: 42.3 },
-  { date: '19日', generated: 43.7, consumed: 41.2 },
-  { date: '20日', generated: 44.9, consumed: 41.8 }
-]
-
-// 发电负荷监测数据
-let powerLoadData = {
-  time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-  actual: [98, 85, 82, 105, 120, 135, 140, 125],
-  forecast: [95, 83, 80, 102, 118, 132, 138, 122]
-}
-
-// 用电负荷监测数据
-let electricityLoadData = {
-  time: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-  actual: [85, 72, 80, 95, 105, 110, 120, 105],
-  forecast: [83, 70, 78, 93, 103, 108, 118, 103]
-}
-
-// 最大负荷预测数据
-const maxLoadForecast = [
-  { date: '6月18日', sanlian: '85%', lizhuanghe: '78%', changhepu: '92%', huanglong: '72%' },
-  { date: '6月19日', sanlian: '82%', lizhuanghe: '80%', changhepu: '88%', huanglong: '75%' },
-  { date: '6月20日', sanlian: '88%', lizhuanghe: '82%', changhepu: '90%', huanglong: '78%' }
-]
-
-// 原始数据备份 - 移到所有数据变量定义之后
-const originalData = {
-  powerResourceData: JSON.parse(JSON.stringify(powerResourceData)),
-  stationStatsData: JSON.parse(JSON.stringify(stationStatsData)),
-  powerLoadData: JSON.parse(JSON.stringify(powerLoadData)),
-  electricityLoadData: JSON.parse(JSON.stringify(electricityLoadData)),
-  powerForecastData: JSON.parse(JSON.stringify(powerForecastData)),
-  electricityDemandRanking: JSON.parse(JSON.stringify(electricityDemandRanking))
-}
-
-// 初始化所有图表
-const initCharts = () => {
-  initPowerResourceChart()
-  initPowerLoadChart()
-  initElectricityLoadChart()
-  initPowerForecastChart()
-  initElectricityDemandChart()
-}
-
-// 初始化发电资源分析图表
-const initPowerResourceChart = () => {
-  const chart = echarts.init(document.getElementById('powerResourceChart') as HTMLElement)
-  const option = {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    color: powerResourceData.map(item => item.color),
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} ({d}%)'
-    },
-    legend: {
-      orient: 'vertical',
-      right: 10,
-      top: 'center',
-      textStyle: {
-        color: '#fff'
-      }
-    },
-    series: [
-      {
-        name: '发电资源',
-        type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#1A2151',
-          borderWidth: 2
-        },
-        label: {
-          show: false,
-          position: 'center'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: '18',
-            fontWeight: 'bold',
-            color: '#fff'
-          }
-        },
-        labelLine: {
-          show: false
-        },
-        data: powerResourceData.map(item => ({ value: item.value, name: item.name }))
-      }
-    ]
-  }
-  chart.setOption(option)
-}
-
-// 初始化发电负荷监测图表
-const initPowerLoadChart = () => {
-  const chart = echarts.init(document.getElementById('powerLoadChart') as HTMLElement)
-  const option = {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    tooltip: {
-      trigger: 'axis'
-    },
-    legend: {
-      data: ['实际值', '预测值'],
-      textStyle: {
-        color: '#fff'
-      },
-      top: 0
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: powerLoadData.time,
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
-        }
-      },
-      axisLabel: {
-        color: '#fff'
-      }
-    },
-    yAxis: {
-      type: 'value',
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
-        }
-      },
-      axisLabel: {
-        color: '#fff'
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(255, 255, 255, 0.1)'
-        }
-      }
-    },
-    series: [
-      {
-        name: '实际值',
-        type: 'line',
-        stack: 'Total',
-        data: powerLoadData.actual,
-        smooth: true,
-        lineStyle: {
-          color: '#4facfe'
-        },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(79, 172, 254, 0.5)' },
-            { offset: 1, color: 'rgba(79, 172, 254, 0.1)' }
-          ])
-        }
-      },
-      {
-        name: '预测值',
-        type: 'line',
-        stack: 'Total',
-        data: powerLoadData.forecast,
-        smooth: true,
-        lineStyle: {
-          color: '#ff6b6b',
-          type: 'dashed'
-        }
-      }
-    ]
-  }
-  chart.setOption(option)
-}
-
-// 初始化用电负荷监测图表
-const initElectricityLoadChart = () => {
-  const chart = echarts.init(document.getElementById('electricityLoadChart') as HTMLElement)
-  const option = {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    tooltip: {
-      trigger: 'axis'
-    },
-    legend: {
-      data: ['实际值', '预测值'],
-      textStyle: {
-        color: '#fff'
-      },
-      top: 0
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: electricityLoadData.time,
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
-        }
-      },
-      axisLabel: {
-        color: '#fff'
-      }
-    },
-    yAxis: {
-      type: 'value',
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
-        }
-      },
-      axisLabel: {
-        color: '#fff'
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(255, 255, 255, 0.1)'
-        }
-      }
-    },
-    series: [
-      {
-        name: '实际值',
-        type: 'line',
-        stack: 'Total',
-        data: electricityLoadData.actual,
-        smooth: true,
-        lineStyle: {
-          color: '#7fbf00'
-        },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(127, 191, 0, 0.5)' },
-            { offset: 1, color: 'rgba(127, 191, 0, 0.1)' }
-          ])
-        }
-      },
-      {
-        name: '预测值',
-        type: 'line',
-        stack: 'Total',
-        data: electricityLoadData.forecast,
-        smooth: true,
-        lineStyle: {
-          color: '#ffd700',
-          type: 'dashed'
-        }
-      }
-    ]
-  }
-  chart.setOption(option)
-}
-
-// 初始化电量预报图表
-const initPowerForecastChart = () => {
-  const chart = echarts.init(document.getElementById('powerForecastChart') as HTMLElement)
-  const option = {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      }
-    },
-    legend: {
-      data: ['发电量', '用电量'],
-      textStyle: {
-        color: '#fff'
-      },
-      top: 0
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: powerForecastData.map(item => item.date),
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
-        }
-      },
-      axisLabel: {
-        color: '#fff'
-      }
-    },
-    yAxis: {
-      type: 'value',
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
-        }
-      },
-      axisLabel: {
-        color: '#fff'
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(255, 255, 255, 0.1)'
-        }
-      }
-    },
-    series: [
-      {
-        name: '发电量',
-        type: 'bar',
-        data: powerForecastData.map(item => item.generated),
-        itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#4facfe' },
-            { offset: 1, color: '#00f2fe' }
-          ])
-        }
-      },
-      {
-        name: '用电量',
-        type: 'bar',
-        data: powerForecastData.map(item => item.consumed),
-        itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#ff6b6b' },
-            { offset: 1, color: '#ff8e8e' }
-          ])
-        }
-      }
-    ]
-  }
-  chart.setOption(option)
-}
-
-// 初始化用电需求排名图表
-const initElectricityDemandChart = () => {
-  const chart = echarts.init(document.getElementById('electricityDemandChart') as HTMLElement)
-  const option = {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'value',
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
-        }
-      },
-      axisLabel: {
-        color: '#fff'
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(255, 255, 255, 0.1)'
-        }
-      }
-    },
-    yAxis: {
-      type: 'category',
-      data: electricityDemandRanking.map(item => item.name).reverse(),
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
-        }
-      },
-      axisLabel: {
-        color: '#fff',
-        fontSize: 12
-      }
-    },
-    series: [
-      {
-        name: '用电需求',
-        type: 'bar',
-        data: electricityDemandRanking.map(item => item.demand).reverse(),
-        itemStyle: {
-          color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-            { offset: 0, color: '#4facfe' },
-            { offset: 1, color: '#00f2fe' }
-          ])
-        },
-        label: {
-          show: true,
-          position: 'right',
-          color: '#fff'
-        }
-      }
-    ]
-  }
-  chart.setOption(option)
-}
-
-// 监听窗口大小变化，重置图表大小
-const handleResize = () => {
-  // 处理所有图表
-  const charts = document.querySelectorAll('div[id$="Chart"]')
-  charts.forEach(chart => {
-    const instance = echarts.getInstanceByDom(chart as HTMLElement)
-    if (instance) {
-      instance.resize()
-    }
-  })
-
-  // 处理地图
-  if (mapInstance) {
-    mapInstance.resize()
-  }
-}
-
-// 地图配置项
+// 配置项
 const mapConfig = {
-  apiKey: '1c8fb5781411703ac5c3343201e0ab99',
+  apiKey: '1c8fb5781411703ac5c3343201e0ab99', // 从SatelliteMap复制的API密钥
   securityConfig: {
-    securityJsCode: '8468351a95a828e0700d4aaa085c3551'
+    securityJsCode: '8468351a95a828e0700d4aaa085c3551' // 安全码
   }
 }
 
@@ -925,10 +281,11 @@ const loadMapScript = () => {
     // 创建script标签加载高德地图API
     const script = document.createElement('script')
     script.type = 'text/javascript'
+    // 显式指定需要加载的模块
     script.src = `https://webapi.amap.com/maps?v=2.0&key=${mapConfig.apiKey}&plugin=AMap.Scale,AMap.ToolBar,AMap.MapType,AMap.TileLayer,AMap.TileLayer.Satellite`
     script.onload = () => {
       AMap = window.AMap
-      console.log('AMap API loaded successfully')
+      console.log('AMap API loaded successfully with all required modules')
       resolve(AMap)
     }
     script.onerror = (error) => {
@@ -937,6 +294,41 @@ const loadMapScript = () => {
     document.head.appendChild(script)
   })
 }
+
+// 站点统计数据
+const stationStatsData = ref<any>({
+  hydropower: { count: 12, totalCapacity: 520 },
+  solar: { count: 8, totalCapacity: 180 },
+  wind: { count: 15, totalCapacity: 670 },
+  storage: { count: 5, totalCapacity: 95 }
+})
+
+// 发电资源分析数据
+const powerResourceData = ref<any[]>([
+  { name: '水电', value: 42, color: '#4facfe' },
+  { name: '风电', value: 35, color: '#00f2fe' },
+  { name: '光伏', value: 18, color: '#ff8042' },
+  { name: '其他', value: 5, color: '#8884d8' }
+])
+
+// 能源类型配置
+const energyTypeConfig = {
+  all: { name: '全部能源', color: '#4facfe' },
+  hydropower: { name: '水电', color: '#4facfe' },
+  solar: { name: '光伏', color: '#ff8042' },
+  wind: { name: '风电', color: '#00f2fe' },
+  storage: { name: '储能', color: '#8884d8' }
+}
+
+// 负荷预测数据
+const maxLoadForecast = ref<any[]>([
+  { date: '今日', sanlian: '32.5', lizhuanghe: '28.3', changhepu: '42.1', huanglong: '35.8' },
+  { date: '明日', sanlian: '31.2', lizhuanghe: '29.5', changhepu: '43.6', huanglong: '34.9' },
+  { date: '后天', sanlian: '33.8', lizhuanghe: '30.1', changhepu: '41.8', huanglong: '36.2' }
+])
+
+// 地图实例
+const mapRef = ref<HTMLDivElement>()
 
 // 初始化地图
 const initMap = async () => {
@@ -948,30 +340,53 @@ const initMap = async () => {
     const mapContainer = mapRef.value
     if (!mapContainer || !AMap) return
 
-    // 创建地图实例
+    // 1. 创建地图实例，使用默认配置
     mapInstance = new AMap.Map(mapContainer, {
       viewMode: '2D',
       center: [110.78, 31.20], // 湖北省宜昌市兴山县
       zoom: 10
     })
 
-    // 添加基础控件
-    mapInstance.addControl(new AMap.Scale())
-    mapInstance.addControl(new AMap.ToolBar())
+    // 2. 添加基础控件
+    if (AMap) {
+      mapInstance.addControl(new AMap.Scale())
+      mapInstance.addControl(new AMap.ToolBar())
+    }
 
-    // 创建并管理图层
-    normalLayer = new (AMap.TileLayer as any)()
-    satelliteLayer = new (AMap.TileLayer.Satellite as any)()
+    // 3. 手动创建和管理图层
+    let normalLayer = null
+    let satelliteLayer = null
+    let roadNetLayer = null
 
-    // 初始显示标准图层
-    normalLayer.setMap(mapInstance)
-    // 添加能源站点标记
+    // 4. 先加载标准图层作为默认显示
+    if (AMap) {
+      normalLayer = new AMap.TileLayer() // 使用标准地图图层
+      normalLayer.setMap(mapInstance)
+      console.log('标准图层已添加并显示')
+
+      // 5. 创建卫星图层和路网图层但先不显示
+      satelliteLayer = new AMap.TileLayer.Satellite()
+      roadNetLayer = new AMap.TileLayer.RoadNet()
+      console.log('卫星图层和路网图层已创建')
+    }
+
+    // 6. 添加能源标记到地图
     updateEnergyMarkers()
 
-    // 监听地图加载完成事件
+    // 7. 监听地图加载完成事件
     mapInstance.on('complete', () => {
-      console.log('兴山县地图加载完成')
+      console.log('融合预报地图加载完成')
     })
+
+    // 8. 添加重试逻辑：尝试在延迟后显示标准图层
+    setTimeout(() => {
+      console.log('尝试显示标准图层')
+      if (normalLayer) {
+        normalLayer.setMap(mapInstance)
+        if (satelliteLayer) satelliteLayer.setMap(null)
+        console.log('已尝试自动切换到标准图层')
+      }
+    }, 2000)
 
   } catch (error) {
     console.error('地图初始化失败:', error)
@@ -990,159 +405,38 @@ const initMap = async () => {
   }
 }
 
-// 添加能源站点标记
-const updateEnergyMarkers = () => {
-  if (!AMap || !mapInstance) return
-
-  // 清除现有标记
-  markers.forEach(marker => {
-    marker.setMap(null)
-  })
-  markers.clear()
-
-  const config = energyTypeConfig[currentEnergyType.value]
-  const data = energyData[currentEnergyType.value]
-
-  // 为每个站点添加标记
-  data.forEach((item: EnergyItem, index: number) => {
-    if (item.count > 0) { // 只有当站点数量大于0时才显示标记
-      // 创建自定义HTML标记
-      const iconContent = `
-        <div class="custom-marker" style="position: relative; display: inline-block;">
-          <div class="marker-icon" style="
-            background-color: ${config.color};
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-          ">
-            ${config.icon}
-          </div>
-          <div class="marker-label" style="
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            white-space: nowrap;
-          ">
-            ${item.name}: ${(item as any)[config.field]}${config.unit}
-          </div>
-        </div>
-      `
-
-      const marker = new (AMap as any).Marker({
-        position: item.coordinates,
-        content: iconContent,
-        zIndex: 100 + index,
-        offset: new (AMap as any).Pixel(-20, -20)
-      })
-
-      // 绑定点击事件 - 切换选中区域并更新图表
-      marker.on('click', (e: any) => {
-        if (e && typeof e.stopPropagation === 'function') {
-          e.stopPropagation()
-        }
-
-        // 如果点击的是当前选中的区域，则取消选中
-        if (selectedRegion.value === item.name) {
-          selectRegion(null)
-        } else {
-          selectRegion(item.name)
-        }
-
-        // 创建信息窗口
-        const infoWindow = new (AMap as any).InfoWindow({
-          content: createInfoWindowContent(item, config),
-          size: new (AMap as any).Size(300, 200),
-          offset: new (AMap as any).Pixel(0, -50)
-        })
-
-        infoWindow.open(mapInstance, item.coordinates)
-      })
-
-      marker.setMap(mapInstance)
-      markers.set(`${currentEnergyType.value}-${item.name}`, marker)
-    }
-  })
-}
-
-// 创建信息窗口内容
-const createInfoWindowContent = (item: any, config: any) => {
-  // 根据不同能源类型显示不同的详细信息
-  let detailInfo = ''
-  if (currentEnergyType.value === 'hydropower') {
-    detailInfo = `
-      <p><strong>装机容量:</strong> ${item.capacity}MW</p>
-      <p><strong>电站数量:</strong> ${item.count}座</p>
-      <p><strong>发电效率:</strong> ${item.generation}%</p>
-    `
-  } else if (currentEnergyType.value === 'solar') {
-    detailInfo = `
-      <p><strong>装机容量:</strong> ${item.capacity}MW</p>
-      <p><strong>电站数量:</strong> ${item.count}座</p>
-      <p><strong>发电效率:</strong> ${item.generation}%</p>
-    `
-  } else if (currentEnergyType.value === 'wind') {
-    detailInfo = `
-      <p><strong>装机容量:</strong> ${item.capacity}MW</p>
-      <p><strong>电站数量:</strong> ${item.count}座</p>
-      <p><strong>发电效率:</strong> ${item.generation}%</p>
-    `
-  } else if (currentEnergyType.value === 'storage') {
-    detailInfo = `
-      <p><strong>装机容量:</strong> ${item.capacity}MW</p>
-      <p><strong>储能站数量:</strong> ${item.count}座</p>
-      <p><strong>当前状态:</strong> ${item.status}%</p>
-    `
-  }
-
-  return `
-    <div class="custom-info-window" style="padding: 12px; background-color: rgba(255, 255, 255, 0.95); border: 1px solid #4facfe;">
-      <div class="info-window-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #333;">${config.icon} ${item.name}${config.name}站</h3>
-      </div>
-      <div class="info-window-content" style="font-size: 14px; color: #666;">
-        ${detailInfo}
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
-          <p><strong>坐标:</strong> ${item.coordinates[0].toFixed(4)}, ${item.coordinates[1].toFixed(4)}</p>
-        </div>
-      </div>
-    </div>
-  `
-}
-
 // 切换能源类型
-const changeEnergyType = (type: keyof EnergyTypeConfigs) => {
+const changeEnergyType = (type: string) => {
   currentEnergyType.value = type
   updateEnergyMarkers()
 }
 
-// 切换地图图层（标准/卫星）
-const switchMapLayer = (layerType: 'normal' | 'satellite') => {
-  if (!normalLayer || !satelliteLayer || !mapInstance) return
-
-  currentMapLayer.value = layerType
-
-  if (layerType === 'normal') {
-    // 显示标准图层，隐藏卫星图层
-    normalLayer.setMap(mapInstance)
-    satelliteLayer.setMap(null)
-  } else if (layerType === 'satellite') {
-    // 显示卫星图层，隐藏标准图层
-    normalLayer.setMap(null)
-    satelliteLayer.setMap(mapInstance)
+// 切换地图图层
+const switchMapLayer = (layer: string) => {
+  currentMapLayer.value = layer
+  
+  if (!mapInstance || !AMap) return
+  
+  // 获取当前已创建的图层
+  const layers = mapInstance.getLayers()
+  
+  // 清除所有图层
+  layers.forEach((layer: any) => {
+    if (layer instanceof AMap.TileLayer) {
+      mapInstance.remove(layer)
+    }
+  })
+  
+  // 根据选择的图层类型重新添加图层
+  if (layer === 'normal') {
+    // 添加标准图层
+    const normalLayer = new AMap.TileLayer()
+    mapInstance.add(normalLayer)
+  } else if (layer === 'satellite') {
+    // 添加卫星图层和路网图层
+    const satelliteLayer = new AMap.TileLayer.Satellite()
+    const roadNetLayer = new AMap.TileLayer.RoadNet()
+    mapInstance.add([satelliteLayer, roadNetLayer])
   }
 }
 
@@ -1161,53 +455,492 @@ const mapZoomOut = () => {
 
 const mapReset = () => {
   if (mapInstance) {
-    mapInstance.setCenter([110.78, 31.20])
-    mapInstance.setZoom(10)
+    mapInstance.setZoomAndCenter(10, [110.78, 31.20]) // 重置到兴山县中心
   }
 }
 
-// 切换选中区域
-const selectRegion = (regionName: string | null) => {
-  selectedRegion.value = regionName
-
-  // 更新所有图表的数据
-  updateAllCharts()
-
-  // 更新地图标记样式
-  updateMarkerStyles()
+// 更新能源标记
+const updateEnergyMarkers = () => {
+  if (!AMap || !mapInstance) return
+  
+  // 清除所有旧标记
+  markers.forEach((marker: any) => {
+    marker.setMap(null)
+  })
+  markers.clear()
+  
+  // 根据当前选择的能源类型添加标记
+  const energyType = currentEnergyType.value
+  
+  // 模拟能源站点数据
+  const energyStations = getEnergyStations(energyType)
+  
+  // 添加标记到地图
+  energyStations.forEach((station: any) => {
+    const markerKey = `${station.type}-${station.name}`
+    
+    // 创建自定义HTML标记
+    const iconContent = `
+      <div class="custom-marker" style="position: relative; display: inline-block;">
+        <div class="marker-icon" style="
+          background-color: ${station.color};
+          color: white;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          cursor: pointer;
+          transition: transform 0.3s ease;
+        ">
+          ${station.icon}
+        </div>
+        <div class="marker-label" style="
+          position: absolute;
+          bottom: -30px;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: rgba(0, 0, 0, 0.7);
+          color: white;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          white-space: nowrap;
+        ">
+          ${station.name}
+        </div>
+      </div>
+    `
+    
+    const marker = new AMap.Marker({
+      position: station.coordinates,
+      content: iconContent,
+      zIndex: 100,
+      offset: new AMap.Pixel(-20, -20)
+    })
+    
+    // 绑定点击事件
+    marker.on('click', () => {
+      selectedRegion.value = station.name
+      updateMarkerStyles()
+    })
+    
+    marker.setMap(mapInstance)
+    markers.set(markerKey, marker)
+  })
 }
 
-// 更新所有图表数据
-const updateAllCharts = () => {
-  // 根据选中的区域获取对应的数据
-  const regionData = selectedRegion.value ? regionSpecificData[selectedRegion.value as keyof typeof regionSpecificData] : null
-
-  if (regionData) {
-    // 更新各数据集 - 对于数组需要重新赋值而不是使用Object.assign
-    // 发电资源分布
-    powerResourceData = JSON.parse(JSON.stringify(regionData.powerResourceData))
-    // 电站统计信息
-    stationStatsData = JSON.parse(JSON.stringify(regionData.stationStatsData))
-    // 发电负荷监测
-    powerLoadData = JSON.parse(JSON.stringify(regionData.powerLoadData))
-    // 用电负荷监测
-    electricityLoadData = JSON.parse(JSON.stringify(regionData.electricityLoadData))
-    // 电量预报
-    powerForecastData = JSON.parse(JSON.stringify(regionData.powerForecastData))
-    // 用电需求排名
-    electricityDemandRanking = JSON.parse(JSON.stringify(regionData.electricityDemandRanking))
-  } else {
-    // 恢复原始数据
-    powerResourceData = JSON.parse(JSON.stringify(originalData.powerResourceData))
-    stationStatsData = JSON.parse(JSON.stringify(originalData.stationStatsData))
-    powerLoadData = JSON.parse(JSON.stringify(originalData.powerLoadData))
-    electricityLoadData = JSON.parse(JSON.stringify(originalData.electricityLoadData))
-    powerForecastData = JSON.parse(JSON.stringify(originalData.powerForecastData))
-    electricityDemandRanking = JSON.parse(JSON.stringify(originalData.electricityDemandRanking))
+// 获取能源站点数据
+const getEnergyStations = (type: string) => {
+  // 模拟的能源站点数据
+  const allStations = [
+    // 水电站
+    { type: 'hydropower', name: '兴山电站', coordinates: [110.75, 31.18], color: '#4facfe', icon: '💧' },
+    { type: 'hydropower', name: '高阳电站', coordinates: [110.80, 31.15], color: '#4facfe', icon: '💧' },
+    { type: 'hydropower', name: '峡口电站', coordinates: [110.70, 31.22], color: '#4facfe', icon: '💧' },
+    
+    // 光伏站
+    { type: 'solar', name: '兴山光伏', coordinates: [110.82, 31.20], color: '#ff8042', icon: '☀️' },
+    { type: 'solar', name: '南阳光伏', coordinates: [110.73, 31.15], color: '#ff8042', icon: '☀️' },
+    
+    // 风电站
+    { type: 'wind', name: '黄粮风电', coordinates: [110.85, 31.25], color: '#00f2fe', icon: '💨' },
+    { type: 'wind', name: '榛子风电', coordinates: [110.68, 31.30], color: '#00f2fe', icon: '💨' },
+    
+    // 储能站
+    { type: 'storage', name: '县城储能', coordinates: [110.78, 31.17], color: '#8884d8', icon: '🔋' },
+    { type: 'storage', name: '南阳储能', coordinates: [110.73, 31.15], color: '#8884d8', icon: '🔋' }
+  ]
+  
+  if (type === 'all') {
+    return allStations
   }
+  
+  return allStations.filter(station => station.type === type)
+}
 
-  // 重新渲染所有图表
-  renderAllCharts()
+// 处理窗口大小变化
+const handleResize = () => {
+  // 处理窗口大小变化
+}
+
+// 初始化图表
+const initCharts = () => {
+  // 初始化所有图表
+  initPowerResourceChart()
+  initPowerLoadChart()
+  initElectricityLoadChart()
+  initPowerForecastChart()
+  initElectricityDemandChart()
+}
+
+// 发电资源分析图表
+const initPowerResourceChart = () => {
+  const chartDom = document.getElementById('powerResourceChart')
+  if (chartDom) {
+    const myChart = echarts.init(chartDom)
+
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'item'
+      },
+      legend: {
+        top: 'bottom',
+        textStyle: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        }
+      },
+      series: [
+        {
+          name: '发电资源',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: 'rgba(0, 0, 0, 0.3)',
+            borderWidth: 2
+          },
+          label: {
+            show: false,
+            position: 'center'
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: '18',
+              fontWeight: 'bold',
+              color: '#fff'
+            }
+          },
+          labelLine: {
+            show: false
+          },
+          data: powerResourceData.value
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }
+}
+
+// 发电负荷监测图表
+const initPowerLoadChart = () => {
+  const chartDom = document.getElementById('powerLoadChart')
+  if (chartDom) {
+    const myChart = echarts.init(chartDom)
+
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis'
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: [
+        {
+          type: 'category',
+          boundaryGap: false,
+          data: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+          axisLine: {
+            lineStyle: {
+              color: 'rgba(255, 255, 255, 0.3)'
+            }
+          },
+          axisLabel: {
+            color: 'rgba(255, 255, 255, 0.7)'
+          }
+        }
+      ],
+      yAxis: [
+        {
+          type: 'value',
+          axisLine: {
+            lineStyle: {
+              color: 'rgba(255, 255, 255, 0.3)'
+            }
+          },
+          axisLabel: {
+            color: 'rgba(255, 255, 255, 0.7)'
+          },
+          splitLine: {
+            lineStyle: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          }
+        }
+      ],
+      series: [
+        {
+          name: '发电负荷',
+          type: 'line',
+          stack: 'Total',
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(79, 172, 254, 0.8)' },
+              { offset: 1, color: 'rgba(79, 172, 254, 0.1)' }
+            ])
+          },
+          emphasis: {
+            focus: 'series'
+          },
+          lineStyle: {
+            color: '#4facfe',
+            width: 3
+          },
+          symbol: 'circle',
+          symbolSize: 6,
+          itemStyle: {
+            color: '#4facfe',
+            borderColor: '#fff',
+            borderWidth: 2
+          },
+          data: [120, 80, 90, 150, 220, 240, 210, 180]
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }
+}
+
+// 用电负荷监测图表
+const initElectricityLoadChart = () => {
+  const chartDom = document.getElementById('electricityLoadChart')
+  if (chartDom) {
+    const myChart = echarts.init(chartDom)
+
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis'
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: [
+        {
+          type: 'category',
+          boundaryGap: false,
+          data: ['00:00', '06:00', '12:00', '18:00'],
+          axisLine: {
+            lineStyle: {
+              color: 'rgba(255, 255, 255, 0.3)'
+            }
+          },
+          axisLabel: {
+            color: 'rgba(255, 255, 255, 0.7)'
+          }
+        }
+      ],
+      yAxis: [
+        {
+          type: 'value',
+          axisLine: {
+            lineStyle: {
+              color: 'rgba(255, 255, 255, 0.3)'
+            }
+          },
+          axisLabel: {
+            color: 'rgba(255, 255, 255, 0.7)'
+          },
+          splitLine: {
+            lineStyle: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          }
+        }
+      ],
+      series: [
+        {
+          name: '用电负荷',
+          type: 'line',
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(0, 242, 254, 0.8)' },
+              { offset: 1, color: 'rgba(0, 242, 254, 0.1)' }
+            ])
+          },
+          lineStyle: {
+            color: '#00f2fe',
+            width: 2
+          },
+          symbol: 'circle',
+          symbolSize: 5,
+          itemStyle: {
+            color: '#00f2fe'
+          },
+          data: [90, 80, 180, 120]
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }
+}
+
+// 电量预报图表
+const initPowerForecastChart = () => {
+  const chartDom = document.getElementById('powerForecastChart')
+  if (chartDom) {
+    const myChart = echarts.init(chartDom)
+
+    const option = {
+      backgroundColor: 'transparent',
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'value',
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.3)'
+          }
+        },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: ['今日', '明日', '后天'],
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.3)'
+          }
+        },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        }
+      },
+      series: [
+        {
+          name: '发电量',
+          type: 'bar',
+          data: [180, 195, 210],
+          itemStyle: {
+            color: '#4facfe',
+            borderRadius: [0, 4, 4, 0]
+          },
+          barWidth: '30%'
+        },
+        {
+          name: '用电量',
+          type: 'bar',
+          data: [120, 135, 140],
+          itemStyle: {
+            color: '#00f2fe',
+            borderRadius: [0, 4, 4, 0]
+          },
+          barWidth: '30%'
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }
+}
+
+// 用电需求排名图表
+const initElectricityDemandChart = () => {
+  const chartDom = document.getElementById('electricityDemandChart')
+  if (chartDom) {
+    const myChart = echarts.init(chartDom)
+
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: ['工业', '商业', '居民', '农业'],
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.3)'
+          }
+        },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.7)',
+          interval: 0,
+          rotate: 0
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.3)'
+          }
+        },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        }
+      },
+      series: [
+        {
+          data: [320, 180, 120, 50],
+          type: 'bar',
+          itemStyle: {
+            color: '#ff8042',
+            borderRadius: 4
+          },
+          barWidth: '40%'
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }
+}
+
+// 模拟初始数据
+const originalData = {
+  powerResourceData: JSON.parse(JSON.stringify(powerResourceData.value)),
+  stationStatsData: JSON.parse(JSON.stringify(stationStatsData.value)),
+  powerLoadData: [],
+  electricityLoadData: [],
+  powerForecastData: [],
+  electricityDemandRanking: []
+}
+
+// 重新设置数据
+const resetData = () => {
+  powerResourceData.value = JSON.parse(JSON.stringify(originalData.powerResourceData))
+  stationStatsData.value = JSON.parse(JSON.stringify(originalData.stationStatsData))
 }
 
 // 重新渲染所有图表
@@ -1275,6 +1008,7 @@ watch(currentEnergyType, () => {
 
 // 组件挂载时初始化
 onMounted(() => {
+  updateCurrentDate()
   initCharts()
   initMap()
   window.addEventListener('resize', handleResize)
@@ -1287,7 +1021,9 @@ onUnmounted(() => {
     mapInstance.destroy()
     mapInstance = null
   }
-  markers.clear()
+  if (markers instanceof Map) {
+    markers.clear()
+  }
 })
 </script>
 
@@ -1300,16 +1036,9 @@ onUnmounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* 顶部导航 */
-.top-header {
-  height: 82px;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
 /* 主要内容区域 */
 .main-content {
-  min-height: calc(100vh - 82px);
+  min-height: calc(100vh - 120px);
   width: 100%;
   overflow-x: hidden;
 }
@@ -1331,6 +1060,8 @@ onUnmounted(() => {
   margin-bottom: 30px;
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
 }
 
 .card-title {
@@ -1377,6 +1108,23 @@ onUnmounted(() => {
   color: #ff6b6b;
 }
 
+/* 中心布局容器 */
+.center-layout {
+  display: grid;
+  grid-template-columns: 1fr minmax(400px, 600px) 1fr;
+  gap: 20px;
+  align-items: start;
+  width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+}
+
+/* 左侧内容 */
+.left-content {
+  width: 100%;
+  min-width: 0;
+}
+
 /* 统计卡片网格 */
 .stats-grid {
   display: flex;
@@ -1389,6 +1137,8 @@ onUnmounted(() => {
   border-radius: 12px;
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .stat-header {
@@ -1438,6 +1188,12 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.station-item:hover {
+  background: rgba(79, 172, 254, 0.1);
+  border-color: rgba(79, 172, 254, 0.3);
 }
 
 .station-label {
@@ -1459,6 +1215,142 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.9);
 }
 
+/* 地图样式 */
+.map-card {
+  color: #000;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  width: 93%;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#map {
+  width: 100%;
+  height: 600px;
+  margin-top: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.map-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.map-controls .el-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+}
+
+.map-controls .el-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+/* 图层切换按钮容器 */
+.layer-switch-container {
+  display: flex;
+  margin-left: auto;
+}
+
+.layer-btn.active {
+  background: rgba(79, 172, 254, 0.8) !important;
+  color: #fff !important;
+  border-color: rgba(79, 172, 254, 1) !important;
+}
+
+/* 顶部标题样式 */
+.header-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.header-title h2 {
+  margin: 0;
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.date-display {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* 能源类型选择器样式 */
+.energy-type-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.energy-type-btn {
+  padding: 8px 16px;
+  border: 2px solid transparent;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.energy-type-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.energy-type-btn:hover::before {
+  left: 100%;
+}
+
+.energy-type-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.energy-type-btn.active {
+  background: var(--color);
+  color: #fff;
+  border-color: var(--color);
+  box-shadow: 0 0 15px rgba(79, 172, 254, 0.5);
+}
+
+/* 右侧内容 */
+.right-content {
+  width: 100%;
+  min-width: 0;
+}
+
 /* 图表网格 */
 .charts-grid {
   display: grid;
@@ -1471,6 +1363,14 @@ onUnmounted(() => {
   border-radius: 12px;
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .chart-header {
@@ -1513,7 +1413,46 @@ onUnmounted(() => {
 
 .chart-container {
   width: 100%;
-  height: 250px;
+  height: 220px;
+  position: relative;
+}
+
+/* 地图内部图表样式 */
+#map .chart-container {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px;
+}
+
+/* 图表标签样式 */
+.chart-label {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 地图内部图表标题 */
+#map .chart-title {
+  color: #4facfe;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* 地图内部图表坐标轴样式 */
+#map .el-table th {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  color: #fff !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+#map .el-table td {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  color: #aaa !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* 表格容器 */
@@ -1542,6 +1481,7 @@ onUnmounted(() => {
 
 .forecast-table td {
   color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
 }
 
 .forecast-table tr:hover td {
@@ -1549,16 +1489,13 @@ onUnmounted(() => {
   color: #4facfe;
 }
 
-/* 一排图表容器 - 调整为屏幕宽度并对齐左侧 */
+/* 一排图表容器 */
 .charts-row {
-  position: relative;
   display: flex;
   gap: 15px;
-  width: 95vw;
+  width: 100%;
   overflow-x: auto;
   padding-bottom: 10px;
-  margin-left: -66.6vw;
-  left: 0;
   margin-top: 20px;
 }
 
@@ -1572,7 +1509,7 @@ onUnmounted(() => {
 
 /* 一排图表中的图表容器 */
 .row-chart-container {
-  height: 200px;
+  height: 180px;
   flex: 1;
 }
 
@@ -1599,136 +1536,6 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .content-area {
-    padding: 20px;
-  }
-}
-
-/* 中心布局容器 */
-.center-layout {
-  display: grid;
-  grid-template-columns: 1fr minmax(400px, 600px) 1fr;
-  gap: 20px;
-  align-items: start;
-  width: 100%;
-  max-width: 1920px;
-  margin: 0 auto;
-}
-
-/* 左侧内容 */
-.left-content {
-  width: 100%;
-  min-width: 0;
-}
-
-/* 右侧内容 */
-.right-content {
-  width: 100%;
-  min-width: 0;
-}
-
-/* 地图样式 */
-.map-card {
-  color: #000;
-  display: flex;
-  flex-direction: column;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  width: 93%;
-}
-
-#map {
-  width: 100%;
-  height: 600px;
-  margin-top: 10px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.map-controls {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.map-controls .el-button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.map-controls .el-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
-}
-
-/* 图层切换按钮容器 */
-.layer-switch-container {
-  display: flex;
-  margin-left: auto;
-}
-
-.layer-btn.active {
-  background: rgba(79, 172, 254, 0.8) !important;
-  color: #fff !important;
-  border-color: rgba(79, 172, 254, 1) !important;
-}
-
-/* 能源类型选择器样式 */
-.energy-type-selector {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  justify-content: center;
-}
-
-.energy-type-btn {
-  padding: 8px 16px;
-  border: 2px solid transparent;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.energy-type-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transition: left 0.5s;
-}
-
-.energy-type-btn:hover::before {
-  left: 100%;
-}
-
-.energy-type-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-}
-
-.energy-type-btn.active {
-  background: var(--color);
-  color: #fff;
-  border-color: var(--color);
-  box-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
-}
-
 /* 自定义标记样式 */
 :deep(.custom-marker) {
   transition: all 0.3s ease;
@@ -1740,6 +1547,25 @@ onUnmounted(() => {
 
 :deep(.custom-marker:hover .marker-label) {
   display: block !important;
+}
+
+/* 滚动条样式 */
+.charts-row::-webkit-scrollbar {
+  height: 6px;
+}
+
+.charts-row::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.charts-row::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.charts-row::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* 响应式设计 */
@@ -1782,46 +1608,6 @@ onUnmounted(() => {
   #map {
     height: 500px;
   }
-}
-
-@media (max-width: 768px) {
-  .forecast-card {
-    padding: 20px;
-  }
-
-  .content-area {
-    padding: 15px 10px;
-  }
-
-  #map {
-    height: 400px;
-  }
-}
-
-@media (max-width: 1400px) {
-  .center-layout {
-    grid-template-columns: 1fr 500px 1fr;
-  }
-}
-
-@media (max-width: 1200px) {
-  .center-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .map-card {
-    order: 1;
-    width: 70%;
-    margin: 0 auto 20px;
-  }
-
-  .left-content {
-    order: 2;
-  }
-
-  .right-content {
-    order: 3;
-  }
 
   .stats-grid {
     flex-direction: row;
@@ -1862,8 +1648,48 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
+  .forecast-card {
+    padding: 20px;
+  }
+
+  .content-area {
+    padding: 15px 10px;
+  }
+
+  #map {
+    height: 400px;
+  }
+
   .stats-grid {
     flex-direction: column;
+  }
+
+  .value {
+    font-size: 36px;
+  }
+
+  .forecast-details {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-area {
+    padding: 10px 8px;
+  }
+
+  #map {
+    height: 350px;
+  }
+
+  .chart-card {
+    padding: 15px;
+  }
+
+  .energy-type-btn {
+    padding: 6px 12px;
+    font-size: 12px;
   }
 }
 </style>

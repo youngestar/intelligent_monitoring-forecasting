@@ -286,7 +286,7 @@ const generateWarningList = () => {
       minutesOffset: 255
     }
   ];
-  
+
   return warningContents.map(item => {
     const time = new Date(now.getTime() - item.minutesOffset * 60000);
     return {
@@ -542,15 +542,7 @@ const updateStorageMarkers = () => {
       if (e && typeof e.stopPropagation === 'function') {
         e.stopPropagation()
       }
-
-      // 创建信息窗口
-      const infoWindow = new (AMap as any).InfoWindow({
-        content: createInfoWindowContent(storage),
-        size: new (AMap as any).Size(300, 200),
-        offset: new (AMap as any).Pixel(0, -50)
-      })
-
-      infoWindow.open(mapInstance, storage.coordinates)
+      showInfoWindow(storage, marker)
     })
 
     // 绑定鼠标悬停事件 - 显示标签
@@ -573,61 +565,49 @@ const updateStorageMarkers = () => {
   })
 }
 
-// 创建信息窗口内容
-const createInfoWindowContent = (storage: any) => {
-  let content = ''
+// 显示信息窗口
+const showInfoWindow = (storage: any, marker: any) => {
+  if (!mapInstance) return
 
+  // 根据类型添加资源信息
+  let resourceTypeInfo = ''
   if (storage.type === 'battery') {
-    content = `
-      <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #ffffff; font-size: 16px; margin-bottom: 10px;">${storage.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>类型：</strong>电池储能</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>状态：</strong><span style="color: ${storage.status === 'normal' ? '#00B42A' : storage.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${storage.status === 'normal' ? '正常' : storage.status === 'attention' ? '注意' : '警告'}</span></p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>装机容量：</strong>${storage.capacity}MW</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>SOC：</strong>${storage.soc}%</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>效率：</strong>${storage.efficiency}%</p>
-          <div style="margin-top: 5px; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden;">
-            <div style="height: 100%; background: ${storage.status === 'normal' ? '#00B42A' : storage.status === 'attention' ? '#FF7D00' : '#F53F3F'}; width: ${storage.soc}%"></div>
-          </div>
-        </div>
-      </div>
-    `
+    resourceTypeInfo = '类型: 电池储能'
   } else if (storage.type === 'pumped') {
-    content = `
-      <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #ffffff; font-size: 16px; margin-bottom: 10px;">${storage.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>类型：</strong>抽水储能</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>状态：</strong><span style="color: ${storage.status === 'normal' ? '#00B42A' : storage.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${storage.status === 'normal' ? '正常' : storage.status === 'attention' ? '注意' : '警告'}</span></p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>装机容量：</strong>${storage.capacity}MW</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>SOC：</strong>${storage.soc}%</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>效率：</strong>${storage.efficiency}%</p>
-          <div style="margin-top: 5px; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden;">
-            <div style="height: 100%; background: ${storage.status === 'normal' ? '#00B42A' : storage.status === 'attention' ? '#FF7D00' : '#F53F3F'}; width: ${storage.soc}%"></div>
-          </div>
-        </div>
-      </div>
-    `
+    resourceTypeInfo = '类型: 抽水蓄能'
   } else if (storage.type === 'thermal') {
-    content = `
-      <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #ffffff; font-size: 16px; margin-bottom: 10px;">${storage.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>类型：</strong>热能储能</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>状态：</strong><span style="color: ${storage.status === 'normal' ? '#00B42A' : storage.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${storage.status === 'normal' ? '正常' : storage.status === 'attention' ? '注意' : '警告'}</span></p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>装机容量：</strong>${storage.capacity}MW</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>SOC：</strong>${storage.soc}%</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>效率：</strong>${storage.efficiency}%</p>
-          <div style="margin-top: 5px; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden;">
-            <div style="height: 100%; background: ${storage.status === 'normal' ? '#00B42A' : storage.status === 'attention' ? '#FF7D00' : '#F53F3F'}; width: ${storage.soc}%"></div>
-          </div>
-        </div>
-      </div>
-    `
+    resourceTypeInfo = '类型: 热能储能'
+  } else {
+    resourceTypeInfo = '类型: 储能资源'
   }
 
-  return content
+  const infoWindow = new (AMap as any).InfoWindow({
+    content: `
+      <div class="custom-info-window">
+        <div class="info-window-header">
+          <h3>${storage.name}</h3>
+        </div>
+        <div class="info-window-content">
+          <p class="resource-type">${resourceTypeInfo}</p>
+          <p class="resource-status">状态: <span style="color: ${storage.status === 'normal' ? '#00B42A' : storage.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${storage.status === 'normal' ? '正常' : storage.status === 'attention' ? '注意' : '警告'}</span></p>
+          <p class="resource-capacity">装机容量: ${storage.capacity}MW</p>
+          <p class="resource-efficiency">效率: ${storage.efficiency}%</p>
+          <p class="resource-soc">SOC: ${storage.soc}%</p>
+          <p class="resource-coordinates">坐标: ${storage.coordinates[0].toFixed(4)}, ${storage.coordinates[1].toFixed(4)}</p>
+        </div>
+      </div>
+    `,
+    size: new (AMap as any).Size(320, 200),
+    offset: new (AMap as any).Pixel(0, -50)
+  })
+
+  infoWindow.open(mapInstance, storage.coordinates)
+}
+
+// 创建信息窗口内容 - 为了兼容原有代码结构保留此函数名，但内部调用showInfoWindow
+const createInfoWindowContent = (storage: any) => {
+  // 这里返回的内容实际上不会被使用，因为我们在点击事件中直接调用了showInfoWindow
+  return ''
 }
 
 // 初始化储能容量趋势图表
@@ -853,13 +833,13 @@ onUnmounted(() => {
 
 <style scoped>
 .energy-storage-container {
-  color: #fff;
-  width: 100%;
-  height: 100vh;
-  background-color: #0a1017;
+  padding: 0;
+  min-height: 100%;
+  background-color: #0D1136;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  color: #fff;
 }
 
 /* 顶部标题栏 */
@@ -920,8 +900,8 @@ onUnmounted(() => {
 .content-area {
   flex: 1;
   display: flex;
-  gap: 20px;
-  padding: 20px;
+  gap: 15px;
+  padding: 10px;
   overflow: hidden;
 }
 
@@ -931,6 +911,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: calc(100vh - 120px);
+  /* 限制左栏高度在屏幕内 */
   overflow-y: auto;
 }
 
@@ -1048,6 +1030,18 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  max-height: 600px;
+}
+
+.resource-type-selector {
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .resource-type-selector {
@@ -1093,6 +1087,7 @@ onUnmounted(() => {
 
 .map {
   flex: 1;
+  min-height: calc(100vh - 200px);
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1141,10 +1136,13 @@ onUnmounted(() => {
 
 /* 右侧区域 */
 .right-section {
+  color: #fff;
   flex: 0.8;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: calc(100vh - 120px);
+  /* 限制右栏高度在屏幕内 */
   overflow-y: auto;
 }
 

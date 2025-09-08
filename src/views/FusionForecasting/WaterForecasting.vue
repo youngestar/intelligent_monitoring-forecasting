@@ -1,7 +1,136 @@
+<template>
+  <div class="water-forecasting-container">
+    <!-- 头部标题 -->
+    <div class="header-title">
+      <h2>水电预测与分析平台</h2>
+      <div class="date-display">{{ currentDate }}</div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="main-content">
+      <!-- 左侧面板 -->
+      <div class="left-panel">
+        <!-- 今日预测水电总量卡片 -->
+        <div class="total-forecast-card">
+          <div class="card-title">今日预测水电总量</div>
+          <div class="forecast-value">
+            <span class="value">{{ totalWaterForecast }}</span>
+            <span class="unit">万千瓦时</span>
+          </div>
+          <div class="growth-info">
+            <span class="growth-label">环比昨日</span>
+            <span class="growth-value"
+              :class="waterLevelTrend === 'rising' ? 'positive' : waterLevelTrend === 'falling' ? 'negative' : ''">
+              {{ waterLevelTrend === 'rising' ? '+' : waterLevelTrend === 'falling' ? '-' : '' }}{{
+                Math.abs(waterLevelChange) }}%
+            </span>
+          </div>
+        </div>
+
+        <!-- 水资源来源分布 -->
+        <div class="water-resource-card">
+          <div class="card-title">水资源来源分布</div>
+          <div id="waterSourceChart" class="chart-container"></div>
+        </div>
+
+        <!-- 水资源使用情况 -->
+        <div class="water-usage-card">
+          <div class="card-title">水资源使用情况</div>
+          <div class="chart-tabs">
+            <button class="tab-btn" :class="{ active: currentWaterUsagePeriod === 'day' }" @click="changeWaterUsagePeriod('day')">日</button>
+            <button class="tab-btn" :class="{ active: currentWaterUsagePeriod === 'week' }" @click="changeWaterUsagePeriod('week')">周</button>
+            <button class="tab-btn" :class="{ active: currentWaterUsagePeriod === 'month' }" @click="changeWaterUsagePeriod('month')">月</button>
+          </div>
+          <div id="waterUsageChart" class="chart-container"></div>
+        </div>
+
+        <!-- 水质监测 -->
+        <div class="water-quality-card">
+          <div class="card-title">水质监测</div>
+          <div id="waterQualityChart" class="chart-container"></div>
+        </div>
+      </div>
+
+      <!-- 右侧面板 -->
+      <div class="right-panel">
+        <!-- 地图区域 -->
+        <div class="map-section">
+          <div class="map-controls">
+            <div class="water-type-selector">
+              <button v-for="(config, key) in waterTypeConfig" :key="key"
+                :class="['energy-type-btn', { active: currentWaterType === key }]" :style="{ '--color': config.color }"
+                @click="changeWaterType(key)">
+                {{ config.icon }} {{ config.name }}
+              </button>
+            </div>
+            <div class="map-toolbar">
+              <button class="toolbar-btn" @click="mapZoomIn">
+                <Plus />
+              </button>
+              <button class="toolbar-btn" @click="mapZoomOut">
+                <Minus />
+              </button>
+              <button class="toolbar-btn" @click="mapReset">
+                <Refresh />
+              </button>
+            </div>
+            <div class="layer-switch-container">
+              <button :class="['layer-btn', 'toolbar-btn', { active: currentMapLayer === 'normal' }]"
+                @click="switchMapLayer('normal')">
+                <MapLocation />
+              </button>
+              <button :class="['layer-btn', 'toolbar-btn', { active: currentMapLayer === 'satellite' }]"
+                @click="switchMapLayer('satellite')">
+                <Picture as PictureOutline />
+              </button>
+            </div>
+          </div>
+          <div id="map" class="map-container" ref="mapRef"></div>
+        </div>
+
+        <!-- 水位变化趋势图 -->
+        <div class="water-level-card">
+          <div class="card-title">水位变化趋势</div>
+          <div id="waterLevelChart" class="chart-container"></div>
+        </div>
+
+        <!-- 区域水资源分布 -->
+        <div class="region-water-card">
+          <div class="card-title">区域水资源分布</div>
+          <div class="water-resources-list">
+            <div v-for="resource in filteredWaterResources" :key="resource.name" class="water-resource-item">
+              <div class="resource-name">{{ resource.name }}</div>
+              <div class="resource-info">
+                <span class="resource-value">{{ resource.storage }}</span>
+                <span class="resource-unit">万立方米</span>
+                <span class="status-indicator" :class="getResourceStatusClass(resource.status || 0)"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch, computed } from 'vue'
 import * as echarts from 'echarts'
 import type { EChartsOption } from 'echarts'
+import { Plus, Minus, Refresh, MapLocation, Picture, Picture as PictureOutline } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+
+// 当前日期
+const currentDate = ref('')
+
+// 计算今天的日期
+const updateCurrentDate = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  currentDate.value = `${year}-${month}-${day}`
+}
 
 // 当前选中的区域
 const selectedRegion = ref<string | null>(null)
@@ -17,7 +146,7 @@ interface AMapInstance {
   Icon: any
   Pixel: any
   Size: any
-  TileLayer: {
+  TileLayer: any | {
     Satellite: any
     RoadNet: any
   }
@@ -30,6 +159,7 @@ let AMap: AMapInstance | null = null
 let markers: Map<string, any> = new Map() // 存储地图标记实例
 let normalLayer: any = null
 let satelliteLayer: any = null
+let roadNetLayer: any = null // 路网图层变量
 // 当前地图图层类型
 const currentMapLayer = ref<'normal' | 'satellite'>('normal')
 
@@ -127,36 +257,36 @@ interface WaterDataType {
 const waterData: WaterDataType = {
   // 河流数据
   river: [
-    { name: '古夫河', storage: 12500, flow: 120, quality: 92, coordinates: [110.78, 31.18] },
-    { name: '香溪河', storage: 9800, flow: 95, quality: 88, coordinates: [110.69, 31.10] },
-    { name: '峡口河', storage: 11200, flow: 110, quality: 94, coordinates: [110.73, 31.02] },
-    { name: '南阳河', storage: 8500, flow: 85, quality: 86, coordinates: [110.95, 31.22] },
-    { name: '黄粮河', storage: 9200, flow: 90, quality: 89, coordinates: [110.87, 31.13] },
-    { name: '水月寺河', storage: 8100, flow: 80, quality: 87, coordinates: [111.03, 31.08] },
-    { name: '高桥河', storage: 7500, flow: 75, quality: 85, coordinates: [110.60, 31.00] },
-    { name: '榛子河', storage: 7800, flow: 78, quality: 84, coordinates: [110.94, 31.34] }
+    { name: '古夫河', storage: 12500, flow: 120, quality: 92, status: 94, coordinates: [110.78, 31.18] },
+    { name: '香溪河', storage: 9800, flow: 95, quality: 88, status: 87, coordinates: [110.69, 31.10] },
+    { name: '峡口河', storage: 11200, flow: 110, quality: 94, status: 95, coordinates: [110.73, 31.02] },
+    { name: '南阳河', storage: 8500, flow: 85, quality: 86, status: 75, coordinates: [110.95, 31.22] },
+    { name: '黄粮河', storage: 9200, flow: 90, quality: 89, status: 83, coordinates: [110.87, 31.13] },
+    { name: '水月寺河', storage: 8100, flow: 80, quality: 87, status: 59, coordinates: [111.03, 31.08] },
+    { name: '高桥河', storage: 7500, flow: 75, quality: 85, status: 56, coordinates: [110.60, 31.00] },
+    { name: '榛子河', storage: 7800, flow: 78, quality: 84, status: 53, coordinates: [110.94, 31.34] }
   ],
   // 水库数据
   reservoir: [
-    { name: '香溪河水库', storage: 55000, flow: 250, quality: 95, coordinates: [110.79, 31.15] },
-    { name: '昭君水库', storage: 42000, flow: 220, quality: 93, coordinates: [110.67, 31.08] },
-    { name: '峡口水库', storage: 52000, flow: 240, quality: 96, coordinates: [110.71, 31.04] },
-    { name: '南阳水库', storage: 35000, flow: 180, quality: 92, coordinates: [110.96, 31.20] },
-    { name: '黄粮水库', storage: 38000, flow: 190, quality: 93, coordinates: [110.85, 31.11] },
-    { name: '水月寺水库', storage: 32000, flow: 170, quality: 91, coordinates: [111.01, 31.09] },
-    { name: '高桥水库', storage: 30000, flow: 160, quality: 90, coordinates: [110.62, 31.01] },
-    { name: '榛子水库', storage: 28000, flow: 150, quality: 89, coordinates: [110.92, 31.32] }
+    { name: '香溪河水库', storage: 55000, flow: 250, quality: 95, status: 96, coordinates: [110.79, 31.15] },
+    { name: '昭君水库', storage: 42000, flow: 220, quality: 93, status: 91, coordinates: [110.67, 31.08] },
+    { name: '峡口水库', storage: 52000, flow: 240, quality: 96, status: 97, coordinates: [110.71, 31.04] },
+    { name: '南阳水库', storage: 35000, flow: 180, quality: 92, status: 86, coordinates: [110.96, 31.20] },
+    { name: '黄粮水库', storage: 38000, flow: 190, quality: 93, status: 89, coordinates: [110.85, 31.11] },
+    { name: '水月寺水库', storage: 32000, flow: 170, quality: 91, status: 63, coordinates: [111.01, 31.09] },
+    { name: '高桥水库', storage: 30000, flow: 160, quality: 90, status: 58, coordinates: [110.62, 31.01] },
+    { name: '榛子水库', storage: 28000, flow: 150, quality: 89, status: 55, coordinates: [110.92, 31.32] }
   ],
   // 水井数据
   well: [
-    { name: '古夫镇水井', storage: 8500, flow: 45, quality: 90, coordinates: [110.77, 31.16] },
-    { name: '昭君镇水井', storage: 7800, flow: 42, quality: 89, coordinates: [110.66, 31.09] },
-    { name: '峡口镇水井', storage: 8200, flow: 44, quality: 91, coordinates: [110.70, 31.03] },
-    { name: '南阳镇水井', storage: 6500, flow: 38, quality: 88, coordinates: [110.94, 31.21] },
-    { name: '黄粮镇水井', storage: 7200, flow: 40, quality: 89, coordinates: [110.86, 31.12] },
-    { name: '水月寺镇水井', storage: 6200, flow: 37, quality: 87, coordinates: [111.02, 31.07] },
-    { name: '高桥乡水井', storage: 5800, flow: 35, quality: 86, coordinates: [110.61, 31.02] },
-    { name: '榛子乡水井', storage: 5500, flow: 34, quality: 85, coordinates: [110.93, 31.33] }
+    { name: '古夫镇水井', storage: 8500, flow: 45, quality: 90, status: 92, coordinates: [110.77, 31.16] },
+    { name: '昭君镇水井', storage: 7800, flow: 42, quality: 89, status: 85, coordinates: [110.66, 31.09] },
+    { name: '峡口镇水井', storage: 8200, flow: 44, quality: 91, status: 93, coordinates: [110.70, 31.03] },
+    { name: '南阳镇水井', storage: 6500, flow: 38, quality: 88, status: 77, coordinates: [110.94, 31.21] },
+    { name: '黄粮镇水井', storage: 7200, flow: 40, quality: 89, status: 81, coordinates: [110.86, 31.12] },
+    { name: '水月寺镇水井', storage: 6200, flow: 37, quality: 87, status: 61, coordinates: [111.02, 31.07] },
+    { name: '高桥乡水井', storage: 5800, flow: 35, quality: 86, status: 57, coordinates: [110.61, 31.02] },
+    { name: '榛子乡水井', storage: 5500, flow: 34, quality: 85, status: 54, coordinates: [110.93, 31.33] }
   ]
 }
 
@@ -199,11 +329,48 @@ let waterLevelData = {
   level: [120, 118, 116, 115, 117, 119, 121, 120.5]
 }
 
-// 用水量数据
-let waterUsageData = {
+// 当前时间周期 (日/周/月)
+const currentWaterUsagePeriod = ref('day')
+
+  // 日用水量数据
+const dayWaterUsageData = {
+  time: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+  actual: [350, 320, 850, 920, 880, 420],
+  forecast: [340, 310, 840, 910, 870, 410]
+}
+
+  // 周用水量数据
+const weekWaterUsageData = {
   time: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
   actual: [8500, 8300, 8400, 8600, 8700, 8200, 8100],
   forecast: [8400, 8200, 8300, 8500, 8600, 8100, 8000]
+}
+
+  // 月用水量数据
+const monthWaterUsageData = {
+  time: ['1月', '2月', '3月', '4月', '5月', '6月'],
+  actual: [258000, 235000, 242000, 268000, 275000, 262000],
+  forecast: [256000, 233000, 240000, 266000, 273000, 260000]
+}
+
+  // 当前使用的数据
+let waterUsageData = JSON.parse(JSON.stringify(dayWaterUsageData))
+
+  // 切换时间周期
+const changeWaterUsagePeriod = (period: 'day' | 'week' | 'month') => {
+  currentWaterUsagePeriod.value = period
+  
+  // 根据选择的周期更新数据
+  if (period === 'day') {
+    waterUsageData = JSON.parse(JSON.stringify(dayWaterUsageData))
+  } else if (period === 'week') {
+    waterUsageData = JSON.parse(JSON.stringify(weekWaterUsageData))
+  } else if (period === 'month') {
+    waterUsageData = JSON.parse(JSON.stringify(monthWaterUsageData))
+  }
+  
+  // 重新初始化图表
+  initWaterUsageChart()
 }
 
 // 水质数据
@@ -223,11 +390,262 @@ const originalData = {
   waterQualityData: JSON.parse(JSON.stringify(waterQualityData))
 }
 
+// 计算总水量预测
+const totalWaterForecast = ref(9850)
+
+// 计算水位趋势
+const waterLevelTrend = ref('rising')
+const waterLevelChange = ref(2.5)
+
+// 可用区域列表
+const availableRegions = ref(['古夫镇', '昭君镇', '峡口镇', '南阳镇', '黄粮镇', '水月寺镇', '高桥乡', '榛子乡'])
+
+// 根据选中区域过滤水资源数据
+const filteredWaterResources = computed(() => {
+  if (!selectedRegion.value) {
+    // 如果没有选择区域，显示前5个水资源点
+    return waterData[currentWaterType.value].slice(0, 5)
+  }
+  // 否则根据区域名称过滤
+  return waterData[currentWaterType.value].filter(resource =>
+    resource.name.includes(selectedRegion.value!)
+  )
+})
+
+// 获取资源状态类名
+const getResourceStatusClass = (status: number) => {
+  if (status >= 80) return 'normal'
+  if (status >= 60) return 'attention'
+  return 'warning'
+}
+
+// 获取资源状态文本
+const getResourceStatusText = (status: number) => {
+  if (status >= 80) return '正常'
+  if (status >= 60) return '注意'
+  return '警告'
+}
+
+// 切换水资源类型
+const changeWaterType = (type: keyof WaterTypeConfigs) => {
+  currentWaterType.value = type
+  // 清除现有标记
+  clearMarkers()
+  // 添加新标记
+  addMarkers()
+}
+
+// 切换地图图层
+const switchMapLayer = (layer: 'normal' | 'satellite') => {
+  currentMapLayer.value = layer
+  if (mapInstance && normalLayer && satelliteLayer) {
+    if (layer === 'normal') {
+      // 显示标准图层，隐藏卫星图层和路网图层
+      normalLayer.setMap(mapInstance)
+      satelliteLayer.setMap(null)
+      if (roadNetLayer) roadNetLayer.setMap(null)
+    } else {
+      // 隐藏标准图层，显示卫星图层和路网图层
+      normalLayer.setMap(null)
+      satelliteLayer.setMap(mapInstance)
+      if (roadNetLayer) roadNetLayer.setMap(mapInstance)
+    }
+  }
+}
+
+// 地图缩放
+const mapZoomIn = () => {
+  if (mapInstance) {
+    mapInstance.zoomIn()
+  }
+}
+
+const mapZoomOut = () => {
+  if (mapInstance) {
+    mapInstance.zoomOut()
+  }
+}
+
+const mapReset = () => {
+  if (mapInstance) {
+    mapInstance.setZoomAndCenter(11, [110.8, 31.1])
+  }
+}
+
+// 清除地图标记
+const clearMarkers = () => {
+  markers.forEach(marker => {
+    marker.setMap(null)
+  })
+  markers.clear()
+}
+
+// 显示信息窗口
+const showInfoWindow = (resource: any, marker: any, config: any) => {
+  if (!mapInstance) return
+
+  const infoWindow = new AMap.InfoWindow({
+    content: `
+      <div class="custom-info-window">
+        <div class="info-window-header">
+          <h3>${resource.name}</h3>
+        </div>
+        <div class="info-window-content">
+          <p class="resource-type">类型: ${config.name}</p>
+          <p class="resource-storage">存储量: ${resource.storage} ${config.unit}</p>
+          <p class="resource-flow">流量: ${resource.flow} m³/s</p>
+          <p class="resource-quality">水质: ${resource.quality}%</p>
+          <p class="resource-coordinates">坐标: ${resource.coordinates[0].toFixed(4)}, ${resource.coordinates[1].toFixed(4)}</p>
+        </div>
+      </div>
+    `,
+    size: new AMap.Size(320, 200),
+    offset: new AMap.Pixel(0, -50)
+  })
+
+  infoWindow.open(mapInstance, resource.coordinates)
+}
+
+// 添加地图标记
+const addMarkers = () => {
+  if (!AMap || !mapInstance) return
+
+  const resources = waterData[currentWaterType.value]
+  const config = waterTypeConfig[currentWaterType.value]
+
+  resources.forEach(resource => {
+    // 创建自定义HTML标记
+    const markerContent = document.createElement('div')
+    markerContent.className = 'custom-marker'
+    markerContent.style.cssText = 'position: relative; display: inline-block;'
+
+    markerContent.innerHTML = `
+      <div class="marker-icon" style="
+        background-color: ${config.color};
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      ">
+        ${config.icon}
+      </div>
+      <div class="marker-label" style="
+        position: absolute;
+        bottom: -32px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      ">
+        ${resource.name}
+      </div>
+    `
+
+    const marker = new AMap.Marker({
+      position: resource.coordinates,
+      content: markerContent,
+      offset: new AMap.Pixel(-20, -20),
+      zIndex: 100
+    })
+
+    marker.setMap(mapInstance)
+    markers.set(resource.name, marker)
+
+    // 添加点击事件
+    marker.on('click', () => {
+      showInfoWindow(resource, marker, config)
+    })
+  })
+}
+
+// 初始化地图
+const initMap = async () => {
+  try {
+    // 检查AMap是否已经加载
+    if (window.AMap) {
+      AMap = window.AMap
+      createMapInstance()
+    } else {
+      // 如果AMap未加载，使用安全的方式监听API加载
+      const script = document.createElement('script')
+      script.type = 'text/javascript'
+      // 显式指定需要加载的模块，确保包含标准图层和卫星图层所需的所有组件
+      script.src = `https://webapi.amap.com/maps?v=2.0&key=1c8fb5781411703ac5c3343201e0ab99&plugin=AMap.Scale,AMap.ToolBar,AMap.MapType,AMap.TileLayer,AMap.TileLayer.Satellite`
+      script.onload = () => {
+        AMap = window.AMap
+        createMapInstance()
+      }
+      document.head.appendChild(script)
+    }
+  } catch (error) {
+    console.error('地图初始化失败:', error)
+    // 显示错误信息
+    if (mapRef.value) {
+      mapRef.value.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #f00;">
+            <div>
+              <h3>地图加载失败</h3>
+              <p>请检查API密钥是否正确或网络连接是否正常</p>
+            </div>
+          </div>
+        `
+    }
+  }
+}
+
+// 创建地图实例
+const createMapInstance = () => {
+  if (!AMap || !mapRef.value) return
+
+  // 创建地图
+  mapInstance = new AMap.Map(mapRef.value, {
+    center: [110.8, 31.1],
+    zoom: 11,
+    mapStyle: 'amap://styles/119203f56a63326f4bba9e5e5e39b0fc', // 深色地图样式
+    features: ['road', 'point', 'building']
+  })
+
+  // 创建标准图层
+  normalLayer = new AMap.TileLayer()
+  normalLayer.setMap(mapInstance)
+
+  // 创建卫星图层和路网图层但先不显示
+  satelliteLayer = new AMap.TileLayer.Satellite()
+  const roadNetLayer = new AMap.TileLayer.RoadNet()
+
+  // 默认显示标准图层，隐藏卫星图层和路网图层
+  normalLayer.setMap(mapInstance)
+  satelliteLayer.setMap(null)
+  roadNetLayer.setMap(null)
+
+  // 添加工具条
+  mapInstance.addControl(new AMap.ToolBar())
+  mapInstance.addControl(new AMap.Scale())
+
+  // 添加标记
+  addMarkers()
+}
+
 // 初始化所有图表
 const initCharts = () => {
   initWaterSourceChart()
   initWaterLevelChart()
   initWaterUsageChart()
+  initWaterQualityChart()
 }
 
 // 初始化水源类型图表
@@ -332,18 +750,18 @@ const initWaterLevelChart = () => {
         data: waterLevelData.level,
         smooth: true,
         lineStyle: {
-          color: '#4facfe',
+          color: '#4FCAFE',
           width: 3
         },
         itemStyle: {
-          color: '#4facfe',
-          borderColor: '#4facfe',
+          color: '#4FCAFE',
+          borderColor: '#4FCAFE',
           borderWidth: 2
         },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(79, 172, 254, 0.5)' },
-            { offset: 1, color: 'rgba(79, 172, 254, 0.1)' }
+            { offset: 0, color: 'rgba(79, 202, 254, 0.5)' },
+            { offset: 1, color: 'rgba(79, 202, 254, 0.1)' }
           ])
         }
       }
@@ -435,7 +853,7 @@ const initWaterUsageChart = () => {
           return {
             value: value,
             itemStyle: {
-              color: '#00a2ff'
+              color: '#4FCAFE'
             },
             // 向右偏移
             offset: [15, 0]
@@ -443,7 +861,7 @@ const initWaterUsageChart = () => {
         }),
         smooth: true,
         lineStyle: {
-          color: '#00a2ff',
+          color: '#4FCAFE',
           width: 2
         },
         symbol: 'circle',
@@ -511,786 +929,419 @@ const initWaterQualityChart = () => {
         data: waterQualityData.map(item => item.value),
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#7fbf00' },
-            { offset: 1, color: '#5fb236' }
-          ]),
-          borderRadius: [4, 4, 0, 0]
-        }
+            { offset: 0, color: '#4FCAFE' },
+            { offset: 1, color: '#1A1B2A' }
+          ])
+        },
+        barWidth: '60%'
       }
     ]
   }
   chart.setOption(option)
 }
 
-// 监听窗口大小变化，重置图表大小
-const handleResize = () => {
-  // 处理所有图表
-  const charts = document.querySelectorAll('div[id$="Chart"]')
-  charts.forEach(chart => {
-    const instance = echarts.getInstanceByDom(chart as HTMLElement)
-    if (instance) {
-      instance.resize()
-    }
-  })
+// 监听区域变化
+const onRegionChange = () => {
+  if (selectedRegion.value && regionSpecificData[selectedRegion.value]) {
+    const regionData = regionSpecificData[selectedRegion.value]
+    waterSourceData = regionData.waterSourceData
+    waterLevelData = regionData.waterLevelData
+    waterUsageData = regionData.waterUsageData
+    waterQualityData = regionData.waterQualityData
 
-  // 处理地图
-  if (mapInstance) {
-    mapInstance.resize()
-  }
-}
-
-// 地图配置项
-const mapConfig = {
-  apiKey: '1c8fb5781411703ac5c3343201e0ab99',
-  securityConfig: {
-    securityJsCode: '8468351a95a828e0700d4aaa085c3551'
-  }
-}
-
-// 加载高德地图API
-const loadMapScript = () => {
-  return new Promise((resolve, reject) => {
-    // 设置安全配置
-    window._AMapSecurityConfig = mapConfig.securityConfig
-
-    // 检查是否已经加载过高德地图API
-    if (window.AMap) {
-      AMap = window.AMap
-      console.log('AMap API already loaded')
-      resolve(AMap)
-      return
-    }
-
-    // 创建script标签加载高德地图API
-    const script = document.createElement('script')
-    script.type = 'text/javascript'
-    script.src = `https://webapi.amap.com/maps?v=2.0&key=${mapConfig.apiKey}&plugin=AMap.Scale,AMap.ToolBar,AMap.MapType,AMap.TileLayer,AMap.TileLayer.Satellite`
-    script.onload = () => {
-      AMap = window.AMap
-      console.log('AMap API loaded successfully')
-      resolve(AMap)
-    }
-    script.onerror = (error) => {
-      reject(new Error('高德地图API加载失败: ' + (error instanceof Error ? error.message : '未知错误')))
-    }
-    document.head.appendChild(script)
-  })
-}
-
-// 初始化地图
-const initMap = async () => {
-  try {
-    // 加载高德地图API
-    await loadMapScript()
-
-    // 获取地图容器
-    const mapContainer = mapRef.value
-    if (!mapContainer || !AMap) return
-
-    // 创建地图实例
-    mapInstance = new AMap.Map(mapContainer, {
-      viewMode: '2D',
-      center: [110.78, 31.20], // 湖北省宜昌市兴山县
-      zoom: 10,
-      mapStyle: 'amap://styles/darkblue', // 使用深色地图样式，更适合显示水资源数据
-    })
-
-    // 添加基础控件
-    mapInstance.addControl(new AMap.Scale())
-    mapInstance.addControl(new AMap.ToolBar())
-
-    // 创建并管理图层
-    normalLayer = new (AMap.TileLayer as any)()
-    satelliteLayer = new (AMap.TileLayer.Satellite as any)()
-
-    // 初始显示标准图层
-    normalLayer.setMap(mapInstance)
-    // 添加水资源站点标记
-    updateWaterMarkers()
-
-    // 监听地图加载完成事件
-    mapInstance.on('complete', () => {
-      console.log('兴山县地图加载完成')
-    })
-
-  } catch (error) {
-    console.error('地图初始化失败:', error)
-    // 显示错误信息
-    if (mapRef.value) {
-      mapRef.value.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #f00;">
-          <div>
-            <h3>地图加载失败</h3>
-            <p>请检查API密钥是否正确或网络连接是否正常</p>
-            <p>错误信息: ${error instanceof Error ? error.message : '未知错误'}</p>
-          </div>
-        </div>
-      `
-    }
-  }
-}
-
-// 添加水资源站点标记
-const updateWaterMarkers = () => {
-  if (!AMap || !mapInstance) return
-
-  // 清除现有标记
-  markers.forEach(marker => {
-    marker.setMap(null)
-  })
-  markers.clear()
-
-  const config = waterTypeConfig[currentWaterType.value]
-  const data = waterData[currentWaterType.value]
-
-  // 为每个站点添加标记
-  data.forEach((item: WaterItem, index: number) => {
-    if (item.storage > 0) { // 只有当存储量大于0时才显示标记
-      // 创建自定义HTML标记，模拟水资源效果
-      const iconContent = `
-        <div class="custom-marker" style="position: relative; display: inline-block;">
-          <div class="marker-icon" style="
-            background-color: ${config.color};
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-            box-shadow: 0 0 20px ${config.color};
-            animation: waterPulse 2s infinite;
-          ">
-            ${config.icon}
-          </div>
-          <div class="marker-label" style="
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            white-space: nowrap;
-          ">
-            ${item.name}: ${(item as any)[config.field]}${config.unit}
-          </div>
-        </div>
-      `
-
-      const marker = new (AMap as any).Marker({
-        position: item.coordinates,
-        content: iconContent,
-        zIndex: 100 + index,
-        offset: new (AMap as any).Pixel(-20, -20)
-      })
-
-      // 绑定点击事件 - 切换选中区域并更新图表
-      marker.on('click', (e: any) => {
-        if (e && typeof e.stopPropagation === 'function') {
-          e.stopPropagation()
-        }
-
-        // 如果点击的是当前选中的区域，则取消选中
-        if (selectedRegion.value === item.name) {
-          selectRegion(null)
-        } else {
-          selectRegion(item.name)
-        }
-
-        // 创建信息窗口
-        const infoWindow = new (AMap as any).InfoWindow({
-          content: createInfoWindowContent(item, config),
-          size: new (AMap as any).Size(300, 200),
-          offset: new (AMap as any).Pixel(0, -50)
-        })
-
-        infoWindow.open(mapInstance, item.coordinates)
-      })
-
-      marker.setMap(mapInstance)
-      markers.set(`${currentWaterType.value}-${item.name}`, marker)
-    }
-  })
-}
-
-// 创建信息窗口内容
-const createInfoWindowContent = (item: any, config: any) => {
-  // 根据不同水资源类型显示不同的详细信息
-  let detailInfo = ''
-  if (currentWaterType.value === 'river') {
-    detailInfo = `
-      <p><strong>河流储水量:</strong> ${item.storage}万立方米</p>
-      <p><strong>流量:</strong> ${item.flow}立方米/秒</p>
-      <p><strong>水质指数:</strong> ${item.quality}/100</p>
-    `
-  } else if (currentWaterType.value === 'reservoir') {
-    detailInfo = `
-      <p><strong>水库储水量:</strong> ${item.storage}万立方米</p>
-      <p><strong>出库流量:</strong> ${item.flow}立方米/秒</p>
-      <p><strong>水质指数:</strong> ${item.quality}/100</p>
-    `
-  } else if (currentWaterType.value === 'well') {
-    detailInfo = `
-      <p><strong>地下水储量:</strong> ${item.storage}万立方米</p>
-      <p><strong>涌水量:</strong> ${item.flow}立方米/小时</p>
-      <p><strong>水质指数:</strong> ${item.quality}/100</p>
-    `
-  }
-
-  return `
-    <div class="custom-info-window" style="padding: 12px; background-color: rgba(255, 255, 255, 0.95); border: 1px solid ${config.color};">
-      <div class="info-window-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #333;">${config.icon} ${item.name}${config.name}</h3>
-      </div>
-      <div class="info-window-content" style="font-size: 14px; color: #666;">
-        ${detailInfo}
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
-          <p><strong>坐标:</strong> ${item.coordinates[0].toFixed(4)}, ${item.coordinates[1].toFixed(4)}</p>
-        </div>
-      </div>
-    </div>
-  `
-}
-
-// 切换水资源类型
-const changeWaterType = (type: keyof WaterTypeConfigs) => {
-  currentWaterType.value = type
-  updateWaterMarkers()
-}
-
-// 切换地图图层（标准/卫星）
-const switchMapLayer = (layerType: 'normal' | 'satellite') => {
-  if (!normalLayer || !satelliteLayer || !mapInstance) return
-
-  currentMapLayer.value = layerType
-
-  if (layerType === 'normal') {
-    // 显示标准图层，隐藏卫星图层
-    normalLayer.setMap(mapInstance)
-    satelliteLayer.setMap(null)
-  } else if (layerType === 'satellite') {
-    // 显示卫星图层，隐藏标准图层
-    normalLayer.setMap(null)
-    satelliteLayer.setMap(mapInstance)
-  }
-}
-
-// 地图控制函数
-const mapZoomIn = () => {
-  if (mapInstance) {
-    mapInstance.zoomIn()
-  }
-}
-
-const mapZoomOut = () => {
-  if (mapInstance) {
-    mapInstance.zoomOut()
-  }
-}
-
-const mapReset = () => {
-  if (mapInstance) {
-    mapInstance.setCenter([110.78, 31.20])
-    mapInstance.setZoom(10)
-  }
-}
-
-// 切换选中区域
-const selectRegion = (regionName: string | null) => {
-  selectedRegion.value = regionName
-
-  // 更新所有图表的数据
-  updateAllCharts()
-}
-
-// 更新所有图表数据
-const updateAllCharts = () => {
-  // 根据选中的区域获取对应的数据
-  const regionData = selectedRegion.value ? regionSpecificData[selectedRegion.value as keyof typeof regionSpecificData] : null
-
-  if (regionData) {
-    // 更新各数据集
-    waterSourceData = JSON.parse(JSON.stringify(regionData.waterSourceData))
-    waterLevelData = JSON.parse(JSON.stringify(regionData.waterLevelData))
-    waterUsageData = JSON.parse(JSON.stringify(regionData.waterUsageData))
-    waterQualityData = JSON.parse(JSON.stringify(regionData.waterQualityData))
+    // 更新图表
+    initCharts()
+    ElMessage.success(`已切换到${selectedRegion.value}的数据`)
   } else {
     // 恢复原始数据
-    waterSourceData = JSON.parse(JSON.stringify(originalData.waterSourceData))
-    waterLevelData = JSON.parse(JSON.stringify(originalData.waterLevelData))
-    waterUsageData = JSON.parse(JSON.stringify(originalData.waterUsageData))
-    waterQualityData = JSON.parse(JSON.stringify(originalData.waterQualityData))
+    waterSourceData = originalData.waterSourceData
+    waterLevelData = originalData.waterLevelData
+    waterUsageData = originalData.waterUsageData
+    waterQualityData = originalData.waterQualityData
+
+    // 更新图表
+    initCharts()
   }
-
-  // 重新渲染所有图表
-  renderAllCharts()
 }
 
-// 重新渲染所有图表
-const renderAllCharts = () => {
-  initWaterSourceChart()
-  initWaterLevelChart()
-  initWaterUsageChart()
+// 监听窗口大小变化，更新图表
+const handleResize = () => {
+  // 更新所有图表大小
+  const charts = ['waterSourceChart', 'waterLevelChart', 'waterUsageChart', 'waterQualityChart']
+  charts.forEach(id => {
+    const chartElement = document.getElementById(id)
+    if (chartElement) {
+      const chart = echarts.getInstanceByDom(chartElement)
+      if (chart) {
+        chart.resize()
+      }
+    }
+  })
 }
-
-// 监听选中区域变化
-watch(selectedRegion, () => {
-  // 这里可以添加额外的处理逻辑
-})
-
-// 监听水资源类型变化，更新标记
-watch(currentWaterType, () => {
-  updateWaterMarkers()
-})
 
 // 组件挂载时初始化
 onMounted(() => {
-  initCharts()
+  updateCurrentDate()
   initMap()
+
+  // 等待DOM加载完成后初始化图表
+  setTimeout(() => {
+    initCharts()
+  }, 100)
+
+  // 添加窗口大小变化监听
   window.addEventListener('resize', handleResize)
 })
 
 // 组件卸载时清理
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
+  // 清理地图
   if (mapInstance) {
     mapInstance.destroy()
-    mapInstance = null
   }
-  markers.clear()
+
+  // 清理标记
+  clearMarkers()
+
+  // 移除窗口大小变化监听
+  window.removeEventListener('resize', handleResize)
 })
+
+// 监听区域变化
+watch(selectedRegion, onRegionChange)
 </script>
-
-<template>
-  <div class="water-forecasting-container">
-    <!-- 主要内容区域 -->
-    <div class="main-content">
-      <div class="content-area">
-        <!-- 今日水资源预测卡片 -->
-        <div class="forecast-card">
-          <h2 class="card-title">今日水资源预测</h2>
-          <div class="forecast-value">
-            <span class="value">126.5</span>
-            <span class="unit">米</span>
-          </div>
-          <div class="forecast-details">
-            <span class="detail-item">较昨日 <span class="increase">+1.2%</span></span>
-            <span class="detail-item">较上周 <span class="decrease">-0.8%</span></span>
-          </div>
-        </div>
-
-        <!-- 中心布局容器 -->
-        <div class="center-layout">
-          <!-- 左侧内容 -->
-          <div class="left-content">
-            <!-- 水源类型分析和水位变化 -->
-            <div class="stats-grid">
-              <!-- 水源类型分析 -->
-              <div class="stat-card">
-                <div class="stat-header">
-                  <h3>水源类型分析</h3>
-                </div>
-                <div class="stat-content">
-                  <div class="resource-item" v-for="resource in waterSourceData" :key="resource.name">
-                    <div class="resource-bar">
-                      <div class="resource-fill"
-                        :style="{ width: resource.value + '%', backgroundColor: resource.color }">
-                      </div>
-                    </div>
-                    <div class="resource-info">
-                      <span class="resource-name">{{ resource.name }}</span>
-                      <span class="resource-value">{{ resource.value }}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 水位变化 -->
-              <div class="stat-card">
-                <div class="stat-header">
-                  <h3>水位变化趋势</h3>
-                </div>
-                <div class="stat-content">
-                  <div id="waterLevelChart" class="chart-container"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 兴山县水资源分布地图 -->
-          <div class="map-card">
-            <!-- 水资源类型选择器 -->
-            <div class="water-type-selector">
-              <button v-for="(config, type) in waterTypeConfig" :key="type"
-                :class="['water-type-btn', { active: currentWaterType === type }]" :style="{ '--color': config.color }"
-                @click="changeWaterType(type)">
-                {{ config.name }}
-              </button>
-            </div>
-            <div ref="mapRef" id="map"></div>
-            <div class="map-controls">
-              <button class="el-button" @click="mapZoomIn">放大</button>
-              <button class="el-button" @click="mapZoomOut">缩小</button>
-              <button class="el-button" @click="mapReset">重置</button>
-              <div class="layer-switch-container">
-                <button class="el-button layer-btn" :class="{ active: currentMapLayer === 'normal' }"
-                  @click="switchMapLayer('normal')">
-                  标准地图
-                </button>
-                <button class="el-button layer-btn" :class="{ active: currentMapLayer === 'satellite' }"
-                  @click="switchMapLayer('satellite')">
-                  卫星地图
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 右侧内容 -->
-          <div class="right-content">
-            <!-- 图表区域 -->
-            <div class="charts-grid">
-              <!-- 水源类型分布图表 -->
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3>水源类型分布</h3>
-                  <div class="chart-tabs">
-                    <button class="tab-btn active">按比例</button>
-                  </div>
-                </div>
-                <div id="waterSourceChart" class="chart-container"></div>
-              </div>
-
-              <!-- 用水量监测图表 -->
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3>用水量监测</h3>
-                </div>
-                <div id="waterUsageChart" class="chart-container"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
 
 <style scoped>
 .water-forecasting-container {
   width: 100%;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #1A1B2A 0%, #1E3A8A 100%);
+  height: 100%;
+  background: linear-gradient(135deg, #0D1136 0%, #161F4A 100%);
   color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-/* 添加水资源脉冲动画 */
-@keyframes waterPulse {
-  0% {
-    box-shadow: 0 0 5px var(--color, #4facfe), 0 0 10px var(--color, #4facfe);
-  }
-
-  50% {
-    box-shadow: 0 0 20px var(--color, #4facfe), 0 0 30px var(--color, #4facfe);
-  }
-
-  100% {
-    box-shadow: 0 0 5px var(--color, #4facfe), 0 0 10px var(--color, #4facfe);
-  }
-}
-
-/* 主要内容区域 */
-.main-content {
-  min-height: calc(100vh - 82px);
-  width: 100%;
-  overflow-x: hidden;
-}
-
-/* 内容区域 */
-.content-area {
-  width: 100%;
-  padding: 30px;
-  overflow-y: auto;
-  max-width: 100vw;
+  padding: 15px;
+  overflow: auto;
   box-sizing: border-box;
+  --primary-color: #4FCAFE;
 }
 
-/* 今日水资源预测卡片 */
-.forecast-card {
-  background: rgba(0, 0, 0, 0.2);
+.header-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-title h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--primary-color);
+}
+
+.date-display {
+  font-size: 16px;
+  color: #aaa;
+}
+
+.main-content {
+  display: flex;
+  gap: 15px;
+  overflow: visible;
+}
+
+.left-panel,
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow: visible;
+}
+
+.left-panel {
+  width: 40%;
+}
+
+.right-panel {
+  width: 60%;
+}
+
+.total-forecast-card,
+.water-resource-card,
+.water-usage-card,
+.water-quality-card,
+.map-section,
+.water-level-card,
+.region-water-card {
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 30px;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 20px;
   backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.map-section {
+  color: #000;
 }
 
 .card-title {
-  font-size: 24px;
-  margin-bottom: 20px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: var(--primary-color);
+  border-bottom: 2px solid rgba(79, 202, 254, 0.3);
+  padding-bottom: 10px;
 }
 
 .forecast-value {
   display: flex;
   align-items: baseline;
-  justify-content: center;
-  margin-bottom: 15px;
+  margin: 15px 0;
 }
 
-.value {
+.forecast-value .value {
   font-size: 48px;
-  font-weight: bold;
-  background: linear-gradient(45deg, #4facfe, #00f2fe);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  color: #fff;
+  margin-right: 10px;
 }
 
-.unit {
-  font-size: 18px;
-  margin-left: 10px;
-  color: rgba(255, 255, 255, 0.7);
+.forecast-value .unit {
+  font-size: 20px;
+  color: #aaa;
 }
 
-.forecast-details {
+.growth-info {
   display: flex;
-  justify-content: center;
-  gap: 30px;
+  align-items: center;
+  gap: 10px;
+}
+
+.growth-label {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
+  color: #aaa;
 }
 
-.increase {
-  color: #7fbf00;
+.growth-value {
+  font-size: 16px;
+  font-weight: 600;
 }
 
-.decrease {
-  color: #ff6b6b;
+.growth-value.positive {
+  color: #00B42A;
 }
 
-/* 统计卡片网格 */
-.stats-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.growth-value.negative {
+  color: #F53F3F;
 }
 
-.stat-card {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.stat-header {
-  margin-bottom: 15px;
-}
-
-.stat-header h3 {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* 水源类型分析内容 */
-.resource-item {
-  margin-bottom: 15px;
-}
-
-.resource-bar {
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  margin-bottom: 5px;
-  overflow: hidden;
-}
-
-.resource-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.resource-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* 中心布局容器 */
-.center-layout {
-  display: grid;
-  grid-template-columns: 1fr minmax(400px, 600px) 1fr;
-  gap: 20px;
-  align-items: start;
+.chart-container {
   width: 100%;
-  max-width: 1920px;
-  margin: 0 auto;
+  height: 220px;
+  position: relative;
 }
 
-/* 左侧内容 */
-.left-content {
-  width: 100%;
-  min-width: 0;
-}
-
-/* 右侧内容 */
-.right-content {
-  width: 100%;
-  min-width: 0;
-}
-
-/* 地图样式 */
-.map-card {
-  color: #000;
-  display: flex;
-  flex-direction: column;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  width: 93%;
-}
-
-#map {
-  width: 100%;
-  height: 600px;
-  margin-top: 10px;
+/* 地图内部图表样式 */
+#map .chart-container {
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
-  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px;
+}
+
+/* 图表标签样式 */
+.chart-label {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 地图内部图表标题 */
+#map .chart-title {
+  color: #4facfe;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* 地图内部图表坐标轴样式 */
+#map .el-table th {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  color: #fff !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+#map .el-table td {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  color: #aaa !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 .map-controls {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.map-controls .el-button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.map-controls .el-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
-}
-
-/* 图层切换按钮容器 */
-.layer-switch-container {
-  display: flex;
-  margin-left: auto;
-}
-
-.layer-btn.active {
-  background: rgba(79, 172, 254, 0.8) !important;
-  color: #fff !important;
-  border-color: rgba(79, 172, 254, 1) !important;
-}
-
-/* 水资源类型选择器样式 */
-.water-type-selector {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  justify-content: center;
-}
-
-.water-type-btn {
-  padding: 8px 16px;
-  border: 2px solid transparent;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.water-type-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transition: left 0.5s;
-}
-
-.water-type-btn:hover::before {
-  left: 100%;
-}
-
-.water-type-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-}
-
-.water-type-btn.active {
-  background: var(--color);
-  color: #fff;
-  border-color: var(--color);
-  box-shadow: 0 0 15px rgba(79, 172, 254, 0.5);
-}
-
-/* 自定义标记样式 */
-:deep(.custom-marker) {
-  transition: all 0.3s ease;
-}
-
-:deep(.custom-marker:hover .marker-icon) {
-  transform: scale(1.2) !important;
-  animation-duration: 1s !important;
-}
-
-:deep(.custom-marker:hover .marker-label) {
-  display: block !important;
-}
-
-/* 图表网格 */
-.charts-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-}
-
-.chart-card {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.chart-header {
-  display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
 }
 
-.chart-header h3 {
+.water-type-selector {
+  display: flex;
+  gap: 10px;
+}
+
+.energy-type-btn {
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.energy-type-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.energy-type-btn.active {
+  background: var(--color);
+  border-color: var(--color);
+  color: #000;
+}
+
+.map-toolbar {
+  display: flex;
+  gap: 10px;
+}
+
+.toolbar-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #000;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.9);
+}
+
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.toolbar-btn.active {
+  background: var(--primary-color);
+  color: #000;
+  border-color: var(--primary-color);
+}
+
+.layer-switch-container {
+  display: flex;
+  gap: 10px;
+}
+
+.layer-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #000;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.layer-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.layer-btn.active {
+  background: var(--primary-color);
+  color: #000;
+  border-color: var(--primary-color);
+}
+
+.map-container {
+  width: 100%;
+  height: 350px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.water-resources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.water-resource-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 15px;
+  transition: all 0.3s ease;
+}
+
+.water-resource-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.resource-name {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.resource-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.resource-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.resource-unit {
+  font-size: 14px;
+  color: #aaa;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.status-indicator.normal {
+  background-color: #00B42A;
+}
+
+.status-indicator.attention {
+  background-color: #FF7D00;
+}
+
+.status-indicator.warning {
+  background-color: #F53F3F;
 }
 
 .chart-tabs {
   display: flex;
   gap: 5px;
+  margin-bottom: 10px;
 }
 
 .tab-btn {
@@ -1309,153 +1360,54 @@ onUnmounted(() => {
 }
 
 .tab-btn.active {
-  background: #4facfe;
-  color: #fff;
-  border-color: #4facfe;
-}
-
-.chart-container {
-  width: 100%;
-  height: 250px;
-}
-
-/* 一排图表容器 - 调整为屏幕宽度并对齐左侧 */
-.charts-row {
-  position: relative;
-  display: flex;
-  gap: 15px;
-  width: 95vw;
-  overflow-x: auto;
-  padding-bottom: 10px;
-  margin-left: -66.6vw;
-  left: 0;
-  margin-top: 20px;
-}
-
-/* 一排图表中的每个卡片 */
-.row-chart {
-  flex: 1;
-  min-width: 280px;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 一排图表中的图表容器 */
-.row-chart-container {
-  height: 200px;
-  flex: 1;
+  background: var(--primary-color);
+  color: #000;
+  border-color: var(--primary-color);
 }
 
 /* 响应式设计 */
-@media (max-width: 1600px) {
-  .center-layout {
-    grid-template-columns: 1fr minmax(400px, 550px) 1fr;
-  }
-
-  .content-area {
-    padding: 25px;
-  }
-}
-
-@media (max-width: 1400px) {
-  .center-layout {
-    grid-template-columns: 1fr minmax(350px, 500px) 1fr;
-    gap: 15px;
-  }
-
-  .content-area {
-    padding: 20px;
-  }
-}
-
 @media (max-width: 1200px) {
-  .center-layout {
-    grid-template-columns: 1fr;
-    gap: 20px;
+  .main-content {
+    flex-direction: column;
   }
 
-  .content-area {
-    padding: 20px 15px;
+  .left-panel,
+  .right-panel {
+    width: 100%;
   }
 
-  .map-card {
-    max-width: 100%;
-    margin: 0 auto;
-  }
-
-  #map {
-    height: 500px;
-  }
-}
-
-@media (max-width: 768px) {
-  .forecast-card {
-    padding: 20px;
-  }
-
-  .content-area {
-    padding: 15px 10px;
-  }
-
-  #map {
+  .map-container {
     height: 400px;
   }
 }
 
-@media (max-width: 1400px) {
-  .center-layout {
-    grid-template-columns: 1fr 500px 1fr;
-  }
-}
-
-@media (max-width: 1200px) {
-  .center-layout {
-    grid-template-columns: 1fr;
+@media (max-width: 768px) {
+  .water-forecasting-container {
+    padding: 10px;
   }
 
-  .map-card {
-    order: 1;
-    width: 70%;
-    margin: 0 auto 20px;
-  }
-
-  .left-content {
-    order: 2;
-  }
-
-  .right-content {
-    order: 3;
-  }
-}
-
-@media (max-width: 1024px) {
-  .map-card {
-    width: 100%;
-  }
-
-  #map {
-    height: 450px;
-  }
-
-  .water-type-selector {
-    flex-wrap: wrap;
+  .header-title h2 {
+    font-size: 20px;
   }
 
   .map-controls {
     flex-wrap: wrap;
-    justify-content: center;
+    gap: 10px;
   }
 
-  .layer-switch-container {
-    margin-left: 0;
-    margin-top: 10px;
-  }
-}
-
-@media (max-width: 768px) {
-  .charts-row {
+  .water-type-selector {
+    order: 3;
     width: 100%;
-    margin-left: 0;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .forecast-value .value {
+    font-size: 36px;
+  }
+
+  .chart-container {
+    height: 180px;
   }
 }
 </style>

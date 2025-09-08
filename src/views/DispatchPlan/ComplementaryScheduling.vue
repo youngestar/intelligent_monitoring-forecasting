@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
 import companyLogo from '@/assets/companyLogo.jpg'
 import { ElTable, ElTableColumn, ElTabPane, ElTabs, ElButton, ElCard, ElDivider, ElInputNumber, ElSwitch, ElPopover, ElForm, ElFormItem, ElDialog, ElSlider, ElInput } from 'element-plus'
@@ -358,9 +358,22 @@ const generateIntegratedDispatchData = (tabType: string) => {
 
 // 初始化电力对比图表
 const initPowerComparisonChart = () => {
-  if (!powerComparisonChartRef.value) return
-
-  const chart = echarts.init(powerComparisonChartRef.value)
+  try {
+    if (!powerComparisonChartRef.value) return
+    
+    // 检查DOM元素宽高是否大于0
+    const dom = powerComparisonChartRef.value
+    if (!dom.clientWidth || !dom.clientHeight) {
+      console.warn('电力对比图表DOM宽高为0，稍后重试初始化')
+      // 设置一些默认宽高
+      dom.style.width = dom.style.width || '100%'
+      dom.style.height = dom.style.height || '300px'
+      // 稍后重试
+      setTimeout(initPowerComparisonChart, 200)
+      return
+    }
+    
+    const chart = echarts.init(dom)
   const { times, photovoltaicData, waterPowerData, windPowerData, energyStorageData, totalLoadData } = generatePowerComparisonData(activeTab.value)
 
   const option = {
@@ -488,13 +501,31 @@ const initPowerComparisonChart = () => {
   window.addEventListener('resize', () => {
     chart.resize()
   })
+  } catch (error) {
+    console.error('初始化电力对比图表时出错:', error)
+    // 稍后重试
+    setTimeout(initPowerComparisonChart, 500)
+  }
 }
 
 // 初始化水位图表
 const initWaterLevelChart = () => {
-  if (!waterStorageChartRef.value) return
-
-  const chart = echarts.init(waterStorageChartRef.value)
+  try {
+    if (!waterStorageChartRef.value) return
+    
+    // 检查DOM元素宽高是否大于0
+    const dom = waterStorageChartRef.value
+    if (!dom.clientWidth || !dom.clientHeight) {
+      console.warn('水位图表DOM宽高为0，稍后重试初始化')
+      // 设置一些默认宽高
+      dom.style.width = dom.style.width || '100%'
+      dom.style.height = dom.style.height || '300px'
+      // 稍后重试
+      setTimeout(initWaterLevelChart, 200)
+      return
+    }
+    
+    const chart = echarts.init(dom)
   const { times, data } = generateWaterLevelData(activeTab.value)
 
   const option = {
@@ -575,13 +606,31 @@ const initWaterLevelChart = () => {
   window.addEventListener('resize', () => {
     chart.resize()
   })
+  } catch (error) {
+    console.error('初始化水位图表时出错:', error)
+    // 稍后重试
+    setTimeout(initWaterLevelChart, 500)
+  }
 }
 
 // 初始化负荷图表
 const initLoadChart = () => {
-  if (!loadChartRef.value) return
-
-  const chart = echarts.init(loadChartRef.value)
+  try {
+    if (!loadChartRef.value) return
+    
+    // 检查DOM元素宽高是否大于0
+    const dom = loadChartRef.value
+    if (!dom.clientWidth || !dom.clientHeight) {
+      console.warn('负荷图表DOM宽高为0，稍后重试初始化')
+      // 设置一些默认宽高
+      dom.style.width = dom.style.width || '100%'
+      dom.style.height = dom.style.height || '300px'
+      // 稍后重试
+      setTimeout(initLoadChart, 200)
+      return
+    }
+    
+    const chart = echarts.init(dom)
   const { times, loadData, forecastData } = generateLoadData(activeTab.value)
 
   const option = {
@@ -673,13 +722,31 @@ const initLoadChart = () => {
   window.addEventListener('resize', () => {
     chart.resize()
   })
+  } catch (error) {
+    console.error('初始化负荷图表时出错:', error)
+    // 稍后重试
+    setTimeout(initLoadChart, 500)
+  }
 }
 
 // 初始化综合调度图表
 const initIntegratedDispatchChart = () => {
-  if (!integratedDispatchChartRef.value) return
-
-  const chart = echarts.init(integratedDispatchChartRef.value)
+  try {
+    if (!integratedDispatchChartRef.value) return
+    
+    // 检查DOM元素宽高是否大于0
+    const dom = integratedDispatchChartRef.value
+    if (!dom.clientWidth || !dom.clientHeight) {
+      console.warn('综合调度图表DOM宽高为0，稍后重试初始化')
+      // 设置一些默认宽高
+      dom.style.width = dom.style.width || '100%'
+      dom.style.height = dom.style.height || '300px'
+      // 稍后重试
+      setTimeout(initIntegratedDispatchChart, 200)
+      return
+    }
+    
+    const chart = echarts.init(dom)
   const data = generateIntegratedDispatchData(activeTab.value)
 
   const option = {
@@ -773,6 +840,11 @@ const initIntegratedDispatchChart = () => {
   window.addEventListener('resize', () => {
     chart.resize()
   })
+  } catch (error) {
+    console.error('初始化综合调度图表时出错:', error)
+    // 稍后重试
+    setTimeout(initIntegratedDispatchChart, 500)
+  }
 }
 
 // 综合调度数据表数据
@@ -898,15 +970,61 @@ const exitParameters = () => {
   // 这里可以添加退参逻辑
 }
 
-// 组件挂载后初始化图表
+// 当前日期
+const currentDate = ref('')
+
+// 格式化日期函数
+const formatDate = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  return `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`
+}
+
+// 组件挂载后初始化图表和日期
 onMounted(() => {
-  // 延迟初始化，确保DOM已渲染
+  currentDate.value = formatDate()
+  // 每秒更新日期时间
+  const timer = setInterval(() => {
+    currentDate.value = formatDate()
+  }, 1000)
+
+  // 清除定时器
+  onBeforeUnmount(() => {
+    clearInterval(timer)
+  })
+  
+  // 增加延迟时间并使用更可靠的初始化方法，确保DOM已完全渲染
   setTimeout(() => {
-    initPowerComparisonChart()
-    initWaterLevelChart()
-    initLoadChart()
-    initIntegratedDispatchChart()
-  }, 100)
+    // 添加错误处理，避免因DOM未渲染完成导致的图表初始化失败
+    try {
+      if (powerComparisonChartRef.value) {
+        initPowerComparisonChart()
+      }
+      if (waterStorageChartRef.value) {
+        initWaterLevelChart()
+      }
+      if (loadChartRef.value) {
+        initLoadChart()
+      }
+      if (integratedDispatchChartRef.value) {
+        initIntegratedDispatchChart()
+      }
+    } catch (error) {
+      console.error('图表初始化失败，将尝试再次初始化:', error)
+      // 如果首次初始化失败，300毫秒后再次尝试
+      setTimeout(() => {
+        initPowerComparisonChart()
+        initWaterLevelChart()
+        initLoadChart()
+        initIntegratedDispatchChart()
+      }, 300)
+    }
+  }, 300)
 })
 
 // 监听标签页切换
@@ -925,7 +1043,13 @@ const handleTabChange = (tabName: any) => {
 
 <template>
   <div class="complementary-scheduling-container">
-
+    <div class="header-title">
+      <h1>互补调度平台</h1>
+      <div class="date-display">{{ new Date().toLocaleString('zh-CN', {
+        year: 'numeric', month: '2-digit', day:
+          '2-digit',
+      }) }}</div>
+    </div>
     <!-- 标签页和数据选择融合区域 -->
     <div class="tabs-data-container">
       <!-- 标签页切换 -->
@@ -948,15 +1072,6 @@ const handleTabChange = (tabName: any) => {
           </ElFormItem>
           <ElFormItem label="入库流量">
             <ElSwitch v-model="formData.inflowData" active-color="#00BFFF" inactive-color="#666" />
-          </ElFormItem>
-          <ElFormItem label="光伏数据">
-            <ElSwitch v-model="formData.photovoltaicData" active-color="#00BFFF" inactive-color="#666" />
-          </ElFormItem>
-          <ElFormItem label="风电数据">
-            <ElSwitch v-model="formData.windData" active-color="#00BFFF" inactive-color="#666" />
-          </ElFormItem>
-          <ElFormItem label="储能数据">
-            <ElSwitch v-model="formData.energyStorageData" active-color="#00BFFF" inactive-color="#666" />
           </ElFormItem>
         </ElForm>
 
@@ -1121,52 +1236,43 @@ const handleTabChange = (tabName: any) => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow: hidden;
 }
 
 /* 页面标题 */
-.page-header {
+.header-title {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 10px 20px;
-  background: rgba(84, 92, 100, 0.8);
+  align-items: center;
+  padding: 15px;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   border-radius: 8px;
-  border: 1px solid #00BFFF;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  margin-bottom: 20px;
 }
 
-.logo {
-  height: 60px;
-  object-fit: contain;
-}
-
-.title-wrapper {
-  text-align: center;
-}
-
-.main-title {
-  color: #00BFFF;
-  font-size: 28px;
-  font-weight: bold;
+.header-title h1 {
+  color: #fff;
+  font-size: 24px;
+  font-weight: 600;
   margin: 0;
 }
 
-.subtitle {
-  color: #9fe9f0;
+.date-display {
+  color: rgba(255, 255, 255, 0.8);
   font-size: 14px;
-  margin-top: 5px;
-}
-
-.user-info {
-  color: #fff;
-  font-size: 14px;
+  font-weight: 400;
 }
 
 /* 标签页和数据选择融合容器 */
 .tabs-data-container {
   display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   align-items: flex-start;
   width: 100%;
+  overflow: hidden;
+  margin-top: -20px;
 }
 
 /* 标签页区域 */
@@ -1279,6 +1385,7 @@ const handleTabChange = (tabName: any) => {
   gap: 20px;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 /* 图表卡片 */
@@ -1318,7 +1425,8 @@ const handleTabChange = (tabName: any) => {
 
 .chart-container {
   width: 100%;
-  height: 300px;
+  min-height: 250px;
+  max-height: 350px;
   flex: 1;
   min-height: 0;
 }
@@ -1498,6 +1606,14 @@ const handleTabChange = (tabName: any) => {
 
   .action-buttons {
     justify-content: center;
+  }
+
+  .tabs-data-container {
+    flex-direction: column;
+  }
+
+  .tabs-section {
+    width: 100%;
   }
 }
 

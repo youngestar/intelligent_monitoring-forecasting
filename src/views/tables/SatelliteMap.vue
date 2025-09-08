@@ -28,7 +28,16 @@ interface AMapInstance {
   }
 }
 
-// 使用全局类型定义
+declare global {
+  interface Window {
+    AMap: AMapInstance
+    tempMarker: any
+    removeMarker?: (id: string) => void
+    _AMapSecurityConfig?: { // 添加安全配置属性
+      securityJsCode: string
+    }
+  }
+}
 
 // 地图DOM引用
 const mapRef = ref<HTMLDivElement | null>(null) // 允许null值
@@ -47,10 +56,10 @@ const {
   addMarker: storeAddMarker
 } = mapStore as any
 
-// 选中电站：直接派生自 Pinia，避免 watch 同步问题
+// 计算属性 - 获取选中的电站
 const selectedPowerStation = computed<MarkerData | null>(() => {
   const current = mapStore.selectedLocation
-  return current && current.type === 'powerStation' ? current : null
+  return current // 直接返回选中的位置，确保右侧介绍栏能正确更新
 })
 
 // 监听selectedPowerStation变化，自动滚动到顶部
@@ -95,7 +104,8 @@ const getStationOverview = (stationName: string) => {
     '兴发集团峡口电站': '峡口电站地处香溪河峡谷地带，水资源丰富，年发电量稳定，为当地工业生产和居民生活提供了可靠的电力保障。该电站在防洪、灌溉方面也发挥了重要作用。',
     '兴发集团小溪河电站': '小溪河电站位于香溪河支流小溪河上，是一座以发电为主，兼顾灌溉和防洪的小型水电站。电站采用了先进的水力发电技术，具有较高的发电效率。',
     '兴发集团满天星电站': '满天星电站是兴发集团近年来新建的电站项目，采用了先进的水力发电技术，具有较高的发电效率。该电站的建成进一步优化了兴山县的电源结构。',
-    '兴发集团王家岭电站': '王家岭电站位于兴山县王家岭地区，是兴发集团电力布局中的重要节点，对优化当地电网结构具有重要意义。电站运行稳定，经济效益显著。'
+    '兴发集团王家岭电站': '王家岭电站位于兴山县王家岭地区，是兴发集团电力布局中的重要节点，对优化当地电网结构具有重要意义。电站运行稳定，经济效益显著。',
+    '兴发集团白鸡河电站': '白鸡河电站成立于2002年3月，位于兴山县境内的白鸡河上，是兴发集团电力布局中的重要组成部分。该电站以水力发电为主，运行稳定，为兴山县的经济发展提供了可靠的电力支持。'
   }
   return overviews[stationName] || '该电站是兴发集团在兴山县境内的重要电力设施之一，为当地经济发展提供了电力支持。'
 }
@@ -144,6 +154,13 @@ const getStationParams = (stationName: string) => {
       '建成年份': '2010年',
       '坝高': '22米',
       '库容': '600万立方米'
+    },
+    '兴发集团白鸡河电站': {
+      '装机容量': '0.8万千瓦',
+      '年均发电量': '约0.3亿千瓦时',
+      '建成年份': '2002年',
+      '坝高': '20米',
+      '库容': '500万立方米'
     }
   }
   return params[stationName] || {
@@ -157,7 +174,7 @@ const getStationParams = (stationName: string) => {
 
 // 计算兴发集团电站总数
 const totalPowerStations = computed(() => {
-  return mapStore.selectedMarkers.filter(marker => marker.type === 'powerStation').length
+  return mapStore.selectedMarkers.filter(marker => marker.type === 'powerStation' || marker.type === 'hydropower').length
 })
 
 // 配置项
@@ -753,10 +770,9 @@ onBeforeUnmount(() => {
       <!-- 兴发集团电站信息展示框 -->
       <div class="power-station-info">
         <div class="info-header">
-          <h2>⚡ 兴发集团电站信息</h2>
-          <div class="station-count">共 {{ totalPowerStations }} 个电站
+            <h2>⚡ 兴发集团电站信息</h2>
+            <div class="station-count">共 {{ mapStore.markerCount }} 个电站</div>
           </div>
-        </div>
         <div class="info-body">
           <div v-if="selectedPowerStation" class="selected-station-info">
             <!-- 电站图片 -->

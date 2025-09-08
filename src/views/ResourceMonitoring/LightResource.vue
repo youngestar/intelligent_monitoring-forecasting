@@ -290,7 +290,7 @@ const getRealTimeLightWeatherData = () => {
       description: '晴间多云 微风'
     }
   ]
-  
+
   return weatherData.map((weather, index) => {
     const date = new Date(now)
     date.setDate(now.getDate() + index)
@@ -553,15 +553,7 @@ const updatePanelMarkers = () => {
       if (e && typeof e.stopPropagation === 'function') {
         e.stopPropagation()
       }
-
-      // 创建信息窗口
-      const infoWindow = new (AMap as any).InfoWindow({
-        content: createInfoWindowContent(panel),
-        size: new (AMap as any).Size(300, 200),
-        offset: new (AMap as any).Pixel(0, -50)
-      })
-
-      infoWindow.open(mapInstance, panel.coordinates)
+      showInfoWindow(panel, marker)
     })
 
     // 绑定鼠标悬停事件 - 显示标签
@@ -584,64 +576,50 @@ const updatePanelMarkers = () => {
   })
 }
 
-// 创建信息窗口内容
-const createInfoWindowContent = (panel: any) => {
-  let content = ''
+// 显示信息窗口
+const showInfoWindow = (panel: any, marker: any) => {
+  if (!mapInstance) return
 
+  let typeName = ''
   if (panel.type === 'solar') {
-    content = `
-      <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #ffffff; font-size: 16px; margin-bottom: 10px;">${panel.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>类型：</strong>地面光伏</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>状态：</strong><span style="color: ${panel.status === 'normal' ? '#FFD700' : panel.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${panel.status === 'normal' ? '正常' : panel.status === 'attention' ? '注意' : '警告'}</span></p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>装机容量：</strong>${panel.capacity}MW</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>当前发电：</strong>${(panel.power / 1000).toFixed(1)}MW</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>效率：</strong>${panel.efficiency}%</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>光照强度：</strong>${panel.irradiation}W/m²</p>
-          <div style="margin-top: 5px; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden;">
-            <div style="height: 100%; background: ${panel.status === 'normal' ? '#FFD700' : panel.status === 'attention' ? '#FF7D00' : '#F53F3F'}; width: ${(panel.power / (panel.capacity * 1000)) * 100}%"></div>
-          </div>
-        </div>
-      </div>
-    `
+    typeName = '地面光伏'
   } else if (panel.type === 'bipv') {
-    content = `
-      <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #ffffff; font-size: 16px; margin-bottom: 10px;">${panel.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>类型：</strong>光伏建筑</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>状态：</strong><span style="color: ${panel.status === 'normal' ? '#FFD700' : panel.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${panel.status === 'normal' ? '正常' : panel.status === 'attention' ? '注意' : '警告'}</span></p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>装机容量：</strong>${panel.capacity}MW</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>当前发电：</strong>${(panel.power / 1000).toFixed(1)}MW</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>效率：</strong>${panel.efficiency}%</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>光照强度：</strong>${panel.irradiation}W/m²</p>
-          <div style="margin-top: 5px; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden;">
-            <div style="height: 100%; background: ${panel.status === 'normal' ? '#FFD700' : panel.status === 'attention' ? '#FF7D00' : '#F53F3F'}; width: ${(panel.power / (panel.capacity * 1000)) * 100}%"></div>
-          </div>
-        </div>
-      </div>
-    `
+    typeName = '光伏建筑'
   } else if (panel.type === 'concentrated') {
-    content = `
-      <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #ffffff; font-size: 16px; margin-bottom: 10px;">${panel.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>类型：</strong>光热发电</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>状态：</strong><span style="color: ${panel.status === 'normal' ? '#FFD700' : panel.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${panel.status === 'normal' ? '正常' : panel.status === 'attention' ? '注意' : '警告'}</span></p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>装机容量：</strong>${panel.capacity}MW</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>当前发电：</strong>${(panel.power / 1000).toFixed(1)}MW</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>效率：</strong>${panel.efficiency}%</p>
-          <p style="margin: 0; color: #ffffff; font-size: 14px;"><strong>光照强度：</strong>${panel.irradiation}W/m²</p>
-          <div style="margin-top: 5px; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden;">
-            <div style="height: 100%; background: ${panel.status === 'normal' ? '#FFD700' : panel.status === 'attention' ? '#FF7D00' : '#F53F3F'}; width: ${(panel.power / (panel.capacity * 1000)) * 100}%"></div>
-          </div>
-        </div>
-      </div>
-    `
+    typeName = '光热发电'
   }
 
-  return content
+  const infoWindow = new (AMap as any).InfoWindow({
+    content: `
+      <div class="custom-info-window">
+        <div class="info-window-header">
+          <h3>${panel.name}</h3>
+        </div>
+        <div class="info-window-content">
+          <p class="resource-type">类型: ${typeName}</p>
+          <p class="resource-status">状态: <span style="color: ${panel.status === 'normal' ? '#FFD700' : panel.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${panel.status === 'normal' ? '正常' : panel.status === 'attention' ? '注意' : '警告'}</span></p>
+          <p class="resource-capacity">装机容量: ${panel.capacity}MW</p>
+          <p class="resource-generation">当前发电: ${(panel.power / 1000).toFixed(1)}MW</p>
+          <p class="resource-efficiency">效率: ${panel.efficiency}%</p>
+          <p class="resource-irradiance">光照强度: ${panel.irradiation}W/m²</p>
+          <p class="resource-coordinates">坐标: ${panel.coordinates[0].toFixed(4)}, ${panel.coordinates[1].toFixed(4)}</p>
+          <div style="margin-top: 5px; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden;">
+            <div style="height: 100%; background: ${panel.status === 'normal' ? '#FFD700' : panel.status === 'attention' ? '#FF7D00' : '#F53F3F'}; width: ${(panel.power / (panel.capacity * 1000)) * 100}%;"></div>
+          </div>
+        </div>
+      </div>
+    `,
+    size: new (AMap as any).Size(320, 220),
+    offset: new (AMap as any).Pixel(0, -50)
+  })
+
+  infoWindow.open(mapInstance, panel.coordinates)
+}
+
+// 创建信息窗口内容 - 为了兼容原有代码结构保留此函数名，但内部调用showInfoWindow
+const createInfoWindowContent = (panel: any) => {
+  // 这里返回的内容实际上不会被使用，因为我们在点击事件中直接调用了showInfoWindow
+  return ''
 }
 
 // 初始化发电功率趋势图表
@@ -907,10 +885,10 @@ onUnmounted(() => {
 .light-resource-container {
   width: 100%;
   height: 100vh;
-  background-color: #0a1017;
+  background-color: #0D1136;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* 顶部标题栏 */
@@ -984,6 +962,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: calc(100vh - 125px);
+  /* 限制左栏高度在屏幕内 */
   overflow-y: auto;
 }
 
@@ -1101,6 +1081,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  max-height: 600px;
 }
 
 .resource-type-selector {
@@ -1146,6 +1127,7 @@ onUnmounted(() => {
 
 .map {
   flex: 1;
+  min-height: calc(100vh - 200px);
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1202,6 +1184,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: calc(100vh - 125px);
+  /* 限制右栏高度在屏幕内 */
   overflow-y: auto;
 }
 

@@ -16,10 +16,13 @@ export const useUserStore = defineStore(
     // token 是字符串类型或 null，已经正确声明
     const token: Ref<string | null> = ref(null)
 
+    // 当前用户名
+    const username: Ref<string | null> = ref('未登录')
+
     // 将 userList 作为响应式数据，使用 Ref 包裹
     const userList: Ref<User[]> = ref([
       {
-        userName: '例子',
+        userName: '未登录',
         password: '123456',
       },
     ])
@@ -32,12 +35,20 @@ export const useUserStore = defineStore(
       })
     }
 
-    // 模拟获取 token
-    const getToken = () => {
+    // 模拟获取 token 并设置当前用户名
+    const getToken = (userName?: string) => {
       token.value = 'token'
+      if (userName) {
+        username.value = userName
+      }
     }
 
-    return { userList, addUser, token, rememberMe, getToken }
+    // 登出方法
+    const logout = () => {
+      token.value = null
+    }
+
+    return { userList, addUser, token, rememberMe, getToken, logout, username }
   },
   {
     persist: [

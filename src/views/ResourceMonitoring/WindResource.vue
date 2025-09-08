@@ -187,7 +187,7 @@ const resourceTypeConfig = {
   all: { name: '全部风电', color: '#1890ff', icon: '🌪️' },
   onshore: { name: '陆上风电', color: '#40a9ff', icon: '🏔️' },
   offshore: { name: '海上风电', color: '#0050b3', icon: '🌊' },
-  distributed: { name: '分散式风电', color: '#096dd9', icon: '🏡' }
+  distributed: { name: `分散式风电`, color: '#096dd9', icon: '🏡' }
 }
 
 // 图表实例
@@ -555,15 +555,7 @@ const updateTurbineMarkers = () => {
       if (e && typeof e.stopPropagation === 'function') {
         e.stopPropagation()
       }
-
-      // 创建信息窗口
-      const infoWindow = new (AMap as any).InfoWindow({
-        content: createInfoWindowContent(turbine),
-        size: new (AMap as any).Size(300, 200),
-        offset: new (AMap as any).Pixel(0, -50)
-      })
-
-      infoWindow.open(mapInstance, turbine.coordinates)
+      showInfoWindow(turbine, marker)
     })
 
     // 绑定鼠标悬停事件 - 显示标签
@@ -586,28 +578,51 @@ const updateTurbineMarkers = () => {
   })
 }
 
-// 创建信息窗口内容
-const createInfoWindowContent = (turbine: any) => {
-  let content = ''
+// 显示信息窗口
+const showInfoWindow = (station: any, marker: any) => {
+  if (!mapInstance) return
 
-  content = `
-    <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-      <h3 style="margin-top: 0; color: #000000; font-size: 16px; margin-bottom: 10px;">${turbine.name}</h3>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>类型：</strong>${turbine.type === 'onshore' ? '陆上风电' : turbine.type === 'offshore' ? '海上风电' : '分散式风电'}</p>
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>状态：</strong><span style="color: ${turbine.status === 'normal' ? '#1890ff' : turbine.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${turbine.status === 'normal' ? '正常' : turbine.status === 'attention' ? '注意' : '警告'}</span></p>
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>装机容量：</strong>${turbine.capacity}MW</p>
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>当前发电：</strong>${(turbine.power / 1000).toFixed(1)}MW</p>
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>风速：</strong>${turbine.windSpeed}m/s</p>
-        <p style="margin: 0; color: #333; font-size: 14px;"><strong>效率：</strong>${turbine.efficiency}%</p>
-        <div style="margin-top: 5px; height: 10px; background: #eee; border-radius: 5px; overflow: hidden;">
-          <div style="height: 100%; background: ${turbine.status === 'normal' ? '#1890ff' : turbine.status === 'attention' ? '#FF7D00' : '#F53F3F'}; width: ${(turbine.power / (turbine.capacity * 1000)) * 100}%"></div>
+  let typeName = ''
+  if (station.type === 'onshore') {
+    typeName = '陆上风电'
+  } else if (station.type === 'offshore') {
+    typeName = '海上风电'
+  } else if (station.type === 'hybrid') {
+    typeName = '混合风电'
+  } else {
+    typeName = '风力发电站'
+  }
+
+  const generation = station.generation || (station.power / 1000).toFixed(1)
+
+  const infoWindow = new (AMap as any).InfoWindow({
+    content: `
+      <div class="custom-info-window">
+        <div class="info-window-header">
+          <h3>${station.name}</h3>
+        </div>
+        <div class="info-window-content">
+          <p class="resource-type">类型: ${typeName}</p>
+          <p class="resource-status">状态: <span style="color: ${station.status === 'normal' ? '#00B42A' : station.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${station.status === 'normal' ? '正常' : station.status === 'attention' ? '注意' : '警告'}</span></p>
+          <p class="resource-capacity">装机容量: ${station.capacity}MW</p>
+          <p class="resource-generation">当前发电: ${generation}MW</p>
+          <p class="resource-efficiency">效率: ${station.efficiency}%</p>
+          <p class="resource-wind-speed">风速: ${station.windSpeed}m/s</p>
+          <p class="resource-coordinates">坐标: ${station.coordinates[0].toFixed(4)}, ${station.coordinates[1].toFixed(4)}</p>
         </div>
       </div>
-    </div>
-  `
+    `,
+    size: new (AMap as any).Size(320, 200),
+    offset: new (AMap as any).Pixel(0, -50)
+  })
 
-  return content
+  infoWindow.open(mapInstance, station.coordinates)
+}
+
+// 创建信息窗口内容 - 为了兼容原有代码结构保留此函数名，但内部调用showInfoWindow
+const createInfoWindowContent = (station: any) => {
+  // 这里返回的内容实际上不会被使用，因为我们在点击事件中直接调用了showInfoWindow
+  return ''
 }
 
 // 初始化发电功率趋势图表
@@ -875,11 +890,10 @@ onUnmounted(() => {
 
 .wind-resource-container {
   width: 100%;
-  height: 100vh;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
   color: #fff;
 }
 
@@ -953,6 +967,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: calc(100vh - 125px);
+  /* 限制左栏高度在屏幕内 */
   overflow-y: auto;
 }
 
@@ -1072,12 +1088,14 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  max-height: 600px;
 }
 
 .resource-type-selector {
   display: flex;
+  height: 60px;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.8);
+  background: #1e293b;
   backdrop-filter: blur(10px);
   border-radius: 8px;
   padding: 10px;
@@ -1092,7 +1110,7 @@ onUnmounted(() => {
   color: var(--color);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   transition: all 0.3s ease;
   display: flex;
@@ -1114,6 +1132,7 @@ onUnmounted(() => {
 
 .map {
   flex: 1;
+  min-height: calc(100vh - 200px);
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
   border-radius: 8px;
@@ -1173,6 +1192,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: calc(100vh - 125px);
+  /* 限制右栏高度在屏幕内 */
   overflow-y: auto;
   width: 25%;
 }

@@ -378,6 +378,13 @@ onMounted(() => {
 
 <template>
   <div class="complementary-analysis-container">
+    <div class="header-title">
+      <h2>互补分析平台</h2>
+      <div class="date-display">{{ new Date().toLocaleString('zh-CN', {
+        year: 'numeric', month: '2-digit', day:
+          '2-digit',
+}) }}</div>
+    </div>
     <!-- 图表区域 -->
     <div class="charts-wrapper">
       <!-- 光伏出力图表 -->
@@ -418,12 +425,28 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.header {
+.header-title {
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  padding: 15px;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   margin-bottom: 20px;
-  height: 60px;
-  width: 100%;
+}
+
+.header-title h2 {
+  color: #fff;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.date-display {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .logo {

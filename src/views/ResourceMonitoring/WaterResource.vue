@@ -295,7 +295,6 @@ const generateWarningList = () => {
       minutesOffset: 255
     }
   ];
-  
   return warningContents.map(item => {
     const time = new Date(now.getTime() - item.minutesOffset * 60000);
     return {
@@ -551,15 +550,7 @@ const updateResourceMarkers = () => {
       if (e && typeof e.stopPropagation === 'function') {
         e.stopPropagation()
       }
-
-      // 创建信息窗口
-      const infoWindow = new (AMap as any).InfoWindow({
-        content: createInfoWindowContent(resource),
-        size: new (AMap as any).Size(300, 200),
-        offset: new (AMap as any).Pixel(0, -50)
-      })
-
-      infoWindow.open(mapInstance, resource.coordinates)
+      showInfoWindow(resource, marker)
     })
 
     // 绑定鼠标悬停事件 - 显示标签
@@ -582,52 +573,72 @@ const updateResourceMarkers = () => {
   })
 }
 
-// 创建信息窗口内容
-const createInfoWindowContent = (resource: any) => {
+// 显示信息窗口
+const showInfoWindow = (resource: any, marker: any) => {
+  if (!mapInstance) return
+  
   let content = ''
-
+  
   if (resource.type === 'reservoir') {
     content = `
-      <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #000000; font-size: 16px; margin-bottom: 10px;">${resource.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>类型：</strong>水库</p>
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>状态：</strong><span style="color: ${resource.status === 'normal' ? '#00B42A' : resource.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${resource.status === 'normal' ? '正常' : resource.status === 'attention' ? '注意' : '警告'}</span></p>
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>当前水位：</strong>${resource.waterLevel}m / ${resource.maxLevel}m</p>
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>水位百分比：</strong>${Math.round((resource.waterLevel / resource.maxLevel) * 100)}%</p>
-          <div style="margin-top: 5px; height: 10px; background: #eee; border-radius: 5px; overflow: hidden;">
-            <div style="height: 100%; background: ${resource.status === 'normal' ? '#00B42A' : resource.status === 'attention' ? '#FF7D00' : '#F53F3F'}; width: ${Math.round((resource.waterLevel / resource.maxLevel) * 100)}%"></div>
+      <div class="custom-info-window">
+        <div class="info-window-header">
+          <h3>${resource.name}</h3>
+        </div>
+        <div class="info-window-content">
+          <p class="resource-type">类型: 水库</p>
+          <p class="resource-status">状态: <span style="color: ${resource.status === 'normal' ? '#00B42A' : resource.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${resource.status === 'normal' ? '正常' : resource.status === 'attention' ? '注意' : '警告'}</span></p>
+          <p class="resource-water-level">当前水位: ${resource.waterLevel}m / ${resource.maxLevel}m</p>
+          <p class="resource-level-percentage">水位百分比: ${Math.round((resource.waterLevel / resource.maxLevel) * 100)}%</p>
+          <div class="water-level-indicator">
+            <div class="water-level-fill" style="width: ${Math.round((resource.waterLevel / resource.maxLevel) * 100)}%; background: ${resource.status === 'normal' ? '#00B42A' : resource.status === 'attention' ? '#FF7D00' : '#F53F3F'}"></div>
           </div>
         </div>
       </div>
     `
   } else if (resource.type === 'river') {
     content = `
-      <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #000000; font-size: 16px; margin-bottom: 10px;">${resource.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>类型：</strong>河流</p>
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>状态：</strong><span style="color: ${resource.status === 'normal' ? '#00B42A' : resource.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${resource.status === 'normal' ? '正常' : resource.status === 'attention' ? '注意' : '警告'}</span></p>
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>当前流量：</strong>${resource.flow}m³/s</p>
+      <div class="custom-info-window">
+        <div class="info-window-header">
+          <h3>${resource.name}</h3>
+        </div>
+        <div class="info-window-content">
+          <p class="resource-type">类型: 河流</p>
+          <p class="resource-status">状态: <span style="color: ${resource.status === 'normal' ? '#00B42A' : resource.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${resource.status === 'normal' ? '正常' : resource.status === 'attention' ? '注意' : '警告'}</span></p>
+          <p class="resource-flow">当前流量: ${resource.flow}m³/s</p>
         </div>
       </div>
     `
   } else if (resource.type === 'hydropower') {
     content = `
-      <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #000000; font-size: 16px; margin-bottom: 10px;">${resource.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>类型：</strong>水电站</p>
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>状态：</strong><span style="color: ${resource.status === 'normal' ? '#00B42A' : resource.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${resource.status === 'normal' ? '正常' : resource.status === 'attention' ? '注意' : '警告'}</span></p>
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>装机容量：</strong>${resource.capacity}MW</p>
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>当前发电：</strong>${resource.generation}MW</p>
-          <p style="margin: 0; color: #333; font-size: 14px;"><strong>负载率：</strong>${Math.round((resource.generation / resource.capacity) * 100)}%</p>
+      <div class="custom-info-window">
+        <div class="info-window-header">
+          <h3>${resource.name}</h3>
+        </div>
+        <div class="info-window-content">
+          <p class="resource-type">类型: 水电站</p>
+          <p class="resource-status">状态: <span style="color: ${resource.status === 'normal' ? '#00B42A' : resource.status === 'attention' ? '#FF7D00' : '#F53F3F'}">${resource.status === 'normal' ? '正常' : resource.status === 'attention' ? '注意' : '警告'}</span></p>
+          <p class="resource-capacity">装机容量: ${resource.capacity}MW</p>
+          <p class="resource-generation">当前发电: ${resource.generation}MW</p>
+          <p class="resource-load-rate">负载率: ${Math.round((resource.generation / resource.capacity) * 100)}%</p>
         </div>
       </div>
     `
   }
 
-  return content
+  const infoWindow = new (AMap as any).InfoWindow({
+    content: content,
+    size: new (AMap as any).Size(320, 200),
+    offset: new (AMap as any).Pixel(0, -50)
+  })
+
+  infoWindow.open(mapInstance, resource.coordinates)
+}
+
+// 创建信息窗口内容 - 为了兼容原有代码结构保留此函数名，但内部调用showInfoWindow
+const createInfoWindowContent = (resource: any) => {
+  // 这里返回的内容实际上不会被使用，因为我们在点击事件中直接调用了showInfoWindow
+  return ''
 }
 
 // 初始化水位趋势图表
@@ -906,12 +917,12 @@ onUnmounted(() => {
 }
 
 .water-resource-container {
-  width: 100%;
-  height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  padding: 0;
+  min-height: 100%;
+  background-color: #0D1136;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
   color: #fff;
 }
 
@@ -974,8 +985,8 @@ onUnmounted(() => {
 .content-area {
   flex: 1;
   display: flex;
-  gap: 20px;
-  padding: 20px;
+  gap: 15px;
+  padding: 10px;
   overflow: hidden;
 }
 
@@ -985,6 +996,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: calc(100vh - 120px);
+  /* 限制左栏高度在屏幕内 */
   overflow-y: auto;
 }
 
@@ -1091,16 +1104,12 @@ onUnmounted(() => {
 
 /* 中间区域 */
 .center-section {
+  color: #000;
   flex: 1.5;
   display: flex;
   flex-direction: column;
   gap: 15px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #000;
-  border-radius: 10px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  max-height: 600px;
 }
 
 .resource-type-selector {
@@ -1108,59 +1117,45 @@ onUnmounted(() => {
   gap: 10px;
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .resource-type-btn {
   flex: 1;
-  padding: 8px 16px;
-  border: 2px solid transparent;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
+  padding: 10px 15px;
+  background: transparent;
+  border: 2px solid var(--color);
+  color: var(--color);
+  border-radius: 4px;
   cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
 }
 
-.resource-type-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transition: left 0.5s;
-}
-
-.resource-type-btn:hover::before {
-  left: 100%;
-}
-
 .resource-type-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: var(--color);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .resource-type-btn.active {
   background: var(--color);
-  color: #fff;
-  border-color: var(--color);
-  box-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .map {
   flex: 1;
+  min-height: calc(100vh - 200px);
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
   border-radius: 8px;
@@ -1216,10 +1211,13 @@ onUnmounted(() => {
 
 /* 右侧区域 */
 .right-section {
-  width: 25%;
+  color: #fff;
+  flex: 0.8;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
+  height: calc(100vh - 120px);
+  /* 限制右栏高度在屏幕内 */
   overflow-y: auto;
 }
 
