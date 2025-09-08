@@ -208,6 +208,7 @@ const mapConfig = {
 const totalReservoirs = ref(12)
 const normalReservoirs = ref(9)
 const warningReservoirs = ref(3)
+const attentionReservoirs = ref(0)
 const avgWaterFlow = ref(125.8)
 
 // 水库列表数据
@@ -904,8 +905,7 @@ const refreshData = async () => {
     warningReservoirs.value = reservoirList.value.filter(r => r.status === 'warning').length
     attentionReservoirs.value = reservoirList.value.filter(r => r.status === 'attention').length
     
-    // 更新当前日期时间
-    updateCurrentDate()
+    // currentDate是computed属性，会自动更新
     
     // 重新渲染所有图表
     if (waterLevelChart) {
@@ -936,18 +936,7 @@ const refreshData = async () => {
   }
 }
 
-// 更新当前日期时间
-const updateCurrentDate = () => {
-  const now = new Date()
-  currentDate.value = now.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
+
 
 // 组件挂载时初始化
 onMounted(() => {

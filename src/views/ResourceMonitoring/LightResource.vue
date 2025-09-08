@@ -873,10 +873,10 @@ const refreshData = async () => {
     totalPanels.value = panelList.value.length
     normalPanels.value = panelList.value.filter(p => p.status === 'normal').length
     warningPanels.value = panelList.value.filter(p => p.status === 'warning').length
-    totalPower.value = panelList.value.reduce((sum, panel) => sum + panel.capacity, 0).toFixed(1)
+    // 转换为Number类型
+    totalPower.value = Number(panelList.value.reduce((sum, panel) => sum + panel.capacity, 0).toFixed(1))
     
-    // 更新当前日期时间
-    updateCurrentDate()
+    // currentDate是computed属性，会自动更新
     
     // 重新渲染所有图表
     if (powerTrendChart) {
@@ -907,18 +907,7 @@ const refreshData = async () => {
   }
 }
 
-// 更新当前日期时间
-const updateCurrentDate = () => {
-  const now = new Date()
-  currentDate.value = now.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
+
 
 // 组件挂载时初始化
 onMounted(() => {

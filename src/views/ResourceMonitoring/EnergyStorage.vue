@@ -806,8 +806,6 @@ const refreshData = async () => {
       const fluctuation = Math.random() * 5 - 2.5
       // 四舍五入保留1位小数
       storage.soc = Number(Math.max(0, Math.min(100, storage.soc + fluctuation)).toFixed(1))
-      // 四舍五入保留0位小数
-      storage.power = Number(Math.max(0, Math.min(storage.capacity * 1000, storage.power + (Math.random() * 200 - 100))).toFixed(0))
       
       // 根据SOC值更新状态
       if (storage.soc < 20 || storage.soc > 90) {
@@ -824,8 +822,7 @@ const refreshData = async () => {
     normalStorages.value = storageList.value.filter(s => s.status === 'normal').length
     warningStorages.value = storageList.value.filter(s => s.status === 'warning').length
     
-    // 更新当前日期时间
-    updateCurrentDate()
+    // currentDate是computed属性，会自动更新
     
     // 重新渲染所有图表
     if (storageCapacityChart) {
@@ -856,18 +853,7 @@ const refreshData = async () => {
   }
 }
 
-// 更新当前日期时间
-const updateCurrentDate = () => {
-  const now = new Date()
-  currentDate.value = now.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
+
 
 // 组件挂载时初始化
 onMounted(() => {

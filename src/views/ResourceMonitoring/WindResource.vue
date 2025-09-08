@@ -872,8 +872,7 @@ const refreshData = async () => {
     normalTurbines.value = turbineList.value.filter(t => t.status === 'normal').length
     warningTurbines.value = turbineList.value.filter(t => t.status === 'warning').length
     
-    // 更新当前日期时间
-    updateCurrentDate()
+    // currentDate是computed属性，会自动更新
     
     // 重新渲染所有图表
     if (powerTrendChart) {
@@ -904,18 +903,7 @@ const refreshData = async () => {
   }
 }
 
-// 更新当前日期时间
-const updateCurrentDate = () => {
-  const now = new Date()
-  currentDate.value = now.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
+// currentDate是computed属性，会自动更新
 
 // 组件挂载时初始化
 onMounted(() => {
