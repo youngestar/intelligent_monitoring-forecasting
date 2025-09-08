@@ -7,8 +7,8 @@
       </div>
       <div class="header-right">
         <div class="date-display">{{ currentDate }}</div>
-        <button class="btn-refresh" @click="refreshData">
-          <i class="refresh-icon"></i> 刷新
+        <button class="btn-refresh" @click="refreshData" :disabled="isRefreshing">
+          <i class="refresh-icon" :class="{ 'rotating': isRefreshing }"></i> {{ isRefreshing ? '刷新中...' : '刷新' }}
         </button>
       </div>
     </div>
@@ -861,33 +861,92 @@ const handleResize = () => {
   }
 }
 
-// 刷新数据
-const refreshData = () => {
-  // 这里可以添加刷新数据的逻辑
-  console.log('刷新水资源数据')
-  // 模拟数据更新
-  reservoirList.value.forEach(reservoir => {
-    if (reservoir.status === 'warning') {
-      reservoir.waterLevel += Math.random() * 0.2 - 0.05
-      reservoir.levelPercentage = Math.round((reservoir.waterLevel / reservoir.maxLevel) * 100)
-    }
-  })
+// 刷新状态
+const isRefreshing = ref(false)
 
-  // 重新渲染图表
-  if (waterLevelChart) {
-    const option = waterLevelChart.getOption()
-    if (option && option.series) {
-      // 模拟更新图表数据
-      const series = option.series as any[]
-      series.forEach((s, index) => {
-        if (s.data && s.data.length > 0) {
-          const lastValue = s.data[s.data.length - 1]
-          s.data[s.data.length - 1] = lastValue + (Math.random() * 0.2 - 0.05)
-        }
-      })
-      waterLevelChart.setOption(option)
+// 刷新数据
+const refreshData = async () => {
+  // 防止重复点击
+  if (isRefreshing.value) return
+  
+  isRefreshing.value = true
+  
+  try {
+    console.log('刷新水资源数据')
+    
+    // 模拟网络请求延迟
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 更新所有水库数据
+    reservoirList.value.forEach(reservoir => {
+      // 为所有水库添加随机波动，而不仅仅是警告状态的水库
+      const fluctuation = Math.random() * 0.2 - 0.05
+      // 四舍五入保留1位小数
+      reservoir.waterLevel = Number(Math.max(0, reservoir.waterLevel + fluctuation).toFixed(1))
+      reservoir.levelPercentage = Math.round((reservoir.waterLevel / reservoir.maxLevel) * 100)
+      
+      // 根据水位更新状态
+      if (reservoir.levelPercentage > 85) {
+        reservoir.status = 'warning'
+        reservoir.statusText = '水位预警'
+      } else if (reservoir.levelPercentage < 30) {
+        reservoir.status = 'attention'
+        reservoir.statusText = '水位偏低'
+      } else {
+        reservoir.status = 'normal'
+        reservoir.statusText = '正常'
+      }
+    })
+    
+    // 更新统计数据
+    totalReservoirs.value = reservoirList.value.length
+    normalReservoirs.value = reservoirList.value.filter(r => r.status === 'normal').length
+    warningReservoirs.value = reservoirList.value.filter(r => r.status === 'warning').length
+    attentionReservoirs.value = reservoirList.value.filter(r => r.status === 'attention').length
+    
+    // 更新当前日期时间
+    updateCurrentDate()
+    
+    // 重新渲染所有图表
+    if (waterLevelChart) {
+      const option = waterLevelChart.getOption()
+      if (option && option.series) {
+        // 为所有系列更新最后一个数据点
+        const series = option.series as any[]
+        series.forEach((s, index) => {
+          if (s.data && s.data.length > 0) {
+            const lastValue = s.data[s.data.length - 1]
+            // 四舍五入保留1位小数
+            s.data[s.data.length - 1] = Number(Math.max(0, lastValue + (Math.random() * 0.2 - 0.05)).toFixed(1))
+          }
+        })
+        waterLevelChart.setOption(option)
+      }
     }
+    
+    // 重新渲染水资源分布图
+    if (waterDistributionChart) {
+      initWaterDistributionChart()
+    }
+    
+  } catch (error) {
+    console.error('刷新数据失败:', error)
+  } finally {
+    isRefreshing.value = false
   }
+}
+
+// 更新当前日期时间
+const updateCurrentDate = () => {
+  const now = new Date()
+  currentDate.value = now.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
 }
 
 // 组件挂载时初始化
@@ -971,10 +1030,29 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.btn-refresh:hover {
+.btn-refresh:hover:not(:disabled) {
   background: rgba(79, 202, 254, 0.3);
   border-color: rgba(79, 202, 254, 0.5);
   transform: translateY(-1px);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.refresh-icon.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .refresh-icon::before {

@@ -647,7 +647,7 @@ const refreshStationData = () => {
   // 在实际应用中，这里应该调用API获取最新数据
   
   // 显示加载状态
-  const refreshBtn = document.querySelector('.btn-refresh')
+  const refreshBtn = document.querySelector('.btn-refresh') as HTMLButtonElement | null
   if (refreshBtn) {
     refreshBtn.innerHTML = '刷新中...'
     refreshBtn.disabled = true

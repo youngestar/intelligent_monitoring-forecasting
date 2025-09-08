@@ -12,7 +12,7 @@ const goToLogin = () => {
   <div id="home">
     <img id="logo" class="blinking-shadow" src="@/assets/companyLogo.jpg" alt="logo" style="
         width: 10vw;
-        margin: 15vh calc(45vw - 8.5px);
+        margin: 23vh calc(45vw - 8.5px);
         margin-bottom: 1.5vh;
         border-radius: 100%;
       " @click="goToLogin" />
@@ -27,7 +27,10 @@ const goToLogin = () => {
   overflow: hidden;
   width: 100vw;
   height: 100vh;
-  background-color: #333333;
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 @keyframes shadowBlink {

@@ -7,8 +7,8 @@
       </div>
       <div class="header-right">
         <div class="date-display">{{ currentDate }}</div>
-        <button class="btn-refresh" @click="refreshData">
-          <i class="refresh-icon"></i> 刷新
+        <button class="btn-refresh" @click="refreshData" :disabled="isRefreshing">
+          <i class="refresh-icon" :class="{ 'rotating': isRefreshing }"></i> {{ isRefreshing ? '刷新中...' : '刷新' }}
         </button>
       </div>
     </div>
@@ -784,33 +784,89 @@ const handleResize = () => {
   }
 }
 
-// 刷新数据
-const refreshData = () => {
-  // 这里可以添加刷新数据的逻辑
-  console.log('刷新储能数据')
-  // 模拟数据更新
-  storageList.value.forEach(storage => {
-    if (storage.status === 'warning') {
-      storage.soc += Math.random() * 5 - 2.5
-      storage.soc = Math.max(0, Math.min(100, storage.soc))
-    }
-  })
+// 刷新状态
+const isRefreshing = ref(false)
 
-  // 重新渲染图表
-  if (storageCapacityChart) {
-    const option = storageCapacityChart.getOption()
-    if (option && option.series) {
-      // 模拟更新图表数据
-      const series = option.series as any[]
-      series.forEach((s, index) => {
-        if (s.data && s.data.length > 0) {
-          const lastValue = s.data[s.data.length - 1]
-          s.data[s.data.length - 1] = lastValue + (Math.random() * 5 - 2.5)
-        }
-      })
-      storageCapacityChart.setOption(option)
+// 刷新数据
+const refreshData = async () => {
+  // 防止重复点击
+  if (isRefreshing.value) return
+  
+  isRefreshing.value = true
+  
+  try {
+    console.log('刷新储能数据')
+    
+    // 模拟网络请求延迟
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 更新所有储能设施数据
+    storageList.value.forEach(storage => {
+      // 为所有储能设施添加随机波动，而不仅仅是警告状态的设施
+      const fluctuation = Math.random() * 5 - 2.5
+      // 四舍五入保留1位小数
+      storage.soc = Number(Math.max(0, Math.min(100, storage.soc + fluctuation)).toFixed(1))
+      // 四舍五入保留0位小数
+      storage.power = Number(Math.max(0, Math.min(storage.capacity * 1000, storage.power + (Math.random() * 200 - 100))).toFixed(0))
+      
+      // 根据SOC值更新状态
+      if (storage.soc < 20 || storage.soc > 90) {
+        storage.status = 'warning'
+        storage.statusText = '需要关注'
+      } else {
+        storage.status = 'normal'
+        storage.statusText = '正常运行'
+      }
+    })
+    
+    // 更新统计数据
+    totalStorages.value = storageList.value.length
+    normalStorages.value = storageList.value.filter(s => s.status === 'normal').length
+    warningStorages.value = storageList.value.filter(s => s.status === 'warning').length
+    
+    // 更新当前日期时间
+    updateCurrentDate()
+    
+    // 重新渲染所有图表
+    if (storageCapacityChart) {
+      const option = storageCapacityChart.getOption()
+      if (option && option.series) {
+        // 为所有系列更新最后一个数据点
+        const series = option.series as any[]
+        series.forEach((s, index) => {
+          if (s.data && s.data.length > 0) {
+            const lastValue = s.data[s.data.length - 1]
+            // 四舍五入保留1位小数
+            s.data[s.data.length - 1] = Number(Math.max(0, lastValue + (Math.random() * 5 - 2.5)).toFixed(1))
+          }
+        })
+        storageCapacityChart.setOption(option)
+      }
     }
+    
+    // 重新渲染储能类型分布图
+    if (storageTypeChart) {
+      initStorageTypeChart()
+    }
+    
+  } catch (error) {
+    console.error('刷新数据失败:', error)
+  } finally {
+    isRefreshing.value = false
   }
+}
+
+// 更新当前日期时间
+const updateCurrentDate = () => {
+  const now = new Date()
+  currentDate.value = now.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
 }
 
 // 组件挂载时初始化
@@ -886,10 +942,30 @@ onUnmounted(() => {
   gap: 5px;
 }
 
-.btn-refresh:hover {
+.btn-refresh:hover:not(:disabled) {
   background: rgba(138, 43, 226, 1);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(138, 43, 226, 0.3);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.refresh-icon.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .refresh-icon::before {

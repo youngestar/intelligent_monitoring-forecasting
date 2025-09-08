@@ -7,8 +7,8 @@
       </div>
       <div class="header-right">
         <div class="date-display">{{ currentDate }}</div>
-        <button class="btn-refresh" @click="refreshData">
-          <i class="refresh-icon"></i> 刷新
+        <button class="btn-refresh" @click="refreshData" :disabled="isRefreshing">
+          <i class="refresh-icon" :class="{ 'rotating': isRefreshing }"></i> {{ isRefreshing ? '刷新中...' : '刷新' }}
         </button>
       </div>
     </div>
@@ -834,33 +834,90 @@ const handleResize = () => {
   }
 }
 
-// 刷新数据
-const refreshData = () => {
-  // 这里可以添加刷新数据的逻辑
-  console.log('刷新光伏数据')
-  // 模拟数据更新
-  panelList.value.forEach(panel => {
-    if (panel.status === 'warning') {
-      panel.power += (Math.random() * 1000 - 500)
-      panel.power = Math.max(0, Math.min(panel.capacity * 1000, panel.power))
-    }
-  })
+// 刷新状态
+const isRefreshing = ref(false)
 
-  // 重新渲染图表
-  if (powerTrendChart) {
-    const option = powerTrendChart.getOption()
-    if (option && option.series) {
-      // 模拟更新图表数据
-      const series = option.series as any[]
-      series.forEach((s, index) => {
-        if (s.data && s.data.length > 0) {
-          const lastValue = s.data[s.data.length - 1]
-          s.data[s.data.length - 1] = lastValue + (Math.random() * 5 - 2.5)
-        }
-      })
-      powerTrendChart.setOption(option)
+// 刷新数据
+const refreshData = async () => {
+  // 防止重复点击
+  if (isRefreshing.value) return
+  
+  isRefreshing.value = true
+  
+  try {
+    console.log('刷新光伏数据')
+    
+    // 模拟网络请求延迟
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 更新所有光伏电站数据
+    panelList.value.forEach(panel => {
+      // 为所有光伏电站添加随机波动，而不仅仅是警告状态的电站
+      const fluctuation = (Math.random() * 1000 - 500)
+      // 四舍五入保留0位小数
+      panel.power = Number(Math.max(0, Math.min(panel.capacity * 1000, panel.power + fluctuation)).toFixed(0))
+      // 四舍五入保留0位小数
+      panel.irradiation = Number(Math.max(0, Math.min(1500, panel.irradiation + (Math.random() * 100 - 50))).toFixed(0))
+      
+      // 根据光照强度和发电功率更新状态
+      if (panel.irradiation < 300 || panel.power < panel.capacity * 1000 * 0.2) {
+        panel.status = 'warning'
+        panel.statusText = '需要关注'
+      } else {
+        panel.status = 'normal'
+        panel.statusText = '正常运行'
+      }
+    })
+    
+    // 更新统计数据
+    totalPanels.value = panelList.value.length
+    normalPanels.value = panelList.value.filter(p => p.status === 'normal').length
+    warningPanels.value = panelList.value.filter(p => p.status === 'warning').length
+    totalPower.value = panelList.value.reduce((sum, panel) => sum + panel.capacity, 0).toFixed(1)
+    
+    // 更新当前日期时间
+    updateCurrentDate()
+    
+    // 重新渲染所有图表
+    if (powerTrendChart) {
+      const option = powerTrendChart.getOption()
+      if (option && option.series) {
+        // 为所有系列更新最后一个数据点
+        const series = option.series as any[]
+        series.forEach((s, index) => {
+          if (s.data && s.data.length > 0) {
+            const lastValue = s.data[s.data.length - 1]
+            // 四舍五入保留1位小数
+            s.data[s.data.length - 1] = Number(Math.max(0, lastValue + (Math.random() * 5 - 2.5)).toFixed(1))
+          }
+        })
+        powerTrendChart.setOption(option)
+      }
     }
+    
+    // 重新渲染光照强度分布图
+    if (irradiationChart) {
+      initIrradiationChart()
+    }
+    
+  } catch (error) {
+    console.error('刷新数据失败:', error)
+  } finally {
+    isRefreshing.value = false
   }
+}
+
+// 更新当前日期时间
+const updateCurrentDate = () => {
+  const now = new Date()
+  currentDate.value = now.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
 }
 
 // 组件挂载时初始化
@@ -937,10 +994,29 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.btn-refresh:hover {
+.btn-refresh:hover:not(:disabled) {
   background: rgba(255, 215, 0, 0.5);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.refresh-icon.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .refresh-icon::before {
