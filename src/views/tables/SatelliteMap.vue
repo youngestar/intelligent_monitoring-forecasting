@@ -747,7 +747,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="satellite-map-container">
     <div class="map-header">
-      <h2>兴发集团湖北省宜昌市兴山县电站全景</h2>
+      <h2>湖北兴发集团电站全景</h2>
       <!-- 地图控制面板 -->
       <div class="map-controls">
         <div class="control-group">
@@ -770,9 +770,9 @@ onBeforeUnmount(() => {
       <!-- 兴发集团电站信息展示框 -->
       <div class="power-station-info">
         <div class="info-header">
-            <h2>⚡ 兴发集团电站信息</h2>
-            <div class="station-count">共 {{ mapStore.markerCount }} 个电站</div>
-          </div>
+          <h2>⚡ 兴发集团电站信息</h2>
+          <div class="station-count">共 {{ mapStore.markerCount }} 个电站</div>
+        </div>
         <div class="info-body">
           <div v-if="selectedPowerStation" class="selected-station-info">
             <!-- 电站图片 -->

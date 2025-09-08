@@ -75,17 +75,17 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/ResourceMonitoring/WindResource.vue'),
       },
       // 调度方案相关路由
-      { 
+      {
         path: '/dispatchPlan',
         name: 'dispatchPlan',
         component: () => import('../views/DispatchPlan/DispatchPlan.vue'),
       },
-      { 
+      {
         path: '/complementaryAnalysis',
         name: 'complementaryAnalysis',
         component: () => import('../views/DispatchPlan/ComplementaryAnalysis.vue'),
       },
-      { 
+      {
         path: '/complementaryScheduling',
         name: 'complementaryScheduling',
         component: () => import('../views/DispatchPlan/ComplementaryScheduling.vue'),
@@ -118,7 +118,7 @@ router.beforeEach(async (to) => {
     ElMessage({
       message: '未登录, 请先登录',
     })
-    return { name: 'login' }
+    return { name: 'logo' }
   }
 })
 
