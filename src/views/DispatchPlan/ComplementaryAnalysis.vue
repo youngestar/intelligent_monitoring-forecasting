@@ -7,47 +7,153 @@ import companyLogo from '@/assets/companyLogo.jpg'
 const photovoltaicChartRef = ref<HTMLDivElement>()
 const waterInflowChartRef = ref<HTMLDivElement>()
 const powerComparisonChartRef = ref<HTMLDivElement>()
+const windPowerChartRef = ref<HTMLDivElement>()
 
-// 光伏出力数据（拟合数据） - 从实时时间开始
+// 光伏出力数据（拟合数据） - 本地时间前一年内
 const generatePhotovoltaicData = () => {
   const data = []
-  const baseTime = new Date().getTime() // 从当前实时时间开始
-  const interval = 90 * 24 * 60 * 60 * 1000 // 90天间隔
+  const now = new Date();
+  // 计算本地时间前一年的时间点
+  const baseTime = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).getTime();
+  const interval = 30 * 24 * 60 * 60 * 1000; // 约1个月间隔
 
-  for (let i = 0; i < 20; i++) {
-    const time = new Date(baseTime + i * interval)
-    const formattedTime = `${time.getFullYear()}-${String(time.getMonth() + 1).padStart(2, '0')}-${String(time.getDate()).padStart(2, '0')}`
-    // 生成类似正弦波的波动数据，范围在250-450之间
-    const value = 350 + 100 * Math.sin(i * 0.6)
-    data.push([formattedTime, Math.round(value)])
+  for (let i = 0; i < 12; i++) {
+    // 从去年的本月开始，向后推移12个月
+    const time = new Date(baseTime + i * interval);
+    const formattedTime = `${time.getFullYear()}-${String(time.getMonth() + 1).padStart(2, '0')}-${String(time.getDate()).padStart(2, '0')}`;
+    const month = time.getMonth() + 1; // 获取月份（1-12）
+
+    // 使用余弦函数创建平滑的单波峰曲线：1月最低，7月最高
+    // 波峰值为27.7，波谷值为5.0
+    // 使用平滑的余弦函数来确保坡度均匀变化
+    const peakValue = 27.7;
+    const valleyValue = 5.0;
+    const amplitude = (peakValue - valleyValue) / 2;
+    const midPoint = valleyValue + amplitude;
+    
+    // 计算月份在12个月周期中的位置（1月为起点，转换为0-2π范围）
+    // 调整相位使7月为波峰（1月为波谷）
+    const phase = ((month - 1) / 12) * 2 * Math.PI - Math.PI;
+    
+    // 使用余弦函数创建平滑的单波峰曲线
+    // 添加一个轻微的非线性因子来微调曲线形状，使坡度变化更加均匀
+    let value = midPoint + amplitude * Math.cos(phase);
+    
+    // 添加一个小的波动因子使曲线更加平滑自然
+    const fluctuation = 0.2 * Math.sin(phase * 3);
+    value = value + fluctuation;
+    
+    // 确保值精确到小数点后一位
+    value = Math.round(value * 10) / 10;
+
+    data.push([formattedTime, value])
   }
   return data
 }
 
-// 入库流量数据（拟合数据） - 从实时时间开始
+// 入库流量数据（拟合数据） - 本地时间前一年内
 const generateWaterInflowData = () => {
   const data = []
-  const baseTime = new Date().getTime() // 从当前实时时间开始
-  const interval = 90 * 24 * 60 * 60 * 1000
+  const now = new Date();
+  // 计算本地时间前一年的时间点
+  const baseTime = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).getTime();
+  const interval = 30 * 24 * 60 * 60 * 1000; // 约1个月间隔
 
-  for (let i = 0; i < 20; i++) {
-    const time = new Date(baseTime + i * interval)
-    const formattedTime = `${time.getFullYear()}-${String(time.getMonth() + 1).padStart(2, '0')}-${String(time.getDate()).padStart(2, '0')}`
-    // 生成波动数据，范围在500-2000之间
-    const value = 1250 + 750 * Math.sin(i * 0.5 + 1)
-    data.push([formattedTime, Math.round(value)])
+  for (let i = 0; i < 12; i++) {
+    // 从去年的本月开始，向后推移12个月
+    const time = new Date(baseTime + i * interval);
+    const formattedTime = `${time.getFullYear()}-${String(time.getMonth() + 1).padStart(2, '0')}-${String(time.getDate()).padStart(2, '0')}`;
+    const month = time.getMonth() + 1; // 获取月份（1-12）
+
+    // 使用余弦函数创建平滑的单波峰曲线：1月最低，7月最高
+    // 波峰值为225，波谷值为25
+    // 使用平滑的余弦函数来确保坡度均匀变化
+    const peakValue = 225;
+    const valleyValue = 25;
+    const amplitude = (peakValue - valleyValue) / 2;
+    const midPoint = valleyValue + amplitude;
+    
+    // 计算月份在12个月周期中的位置（1月为起点，转换为0-2π范围）
+    // 调整相位使7月为波峰（1月为波谷）
+    const phase = ((month - 1) / 12) * 2 * Math.PI - Math.PI;
+    
+    // 使用余弦函数创建平滑的单波峰曲线
+    // 添加一个轻微的非线性因子来微调曲线形状，使坡度变化更加均匀
+    let value = midPoint + amplitude * Math.cos(phase);
+    
+    // 添加一个小的波动因子使曲线更加平滑自然
+    const fluctuation = 0.5 * Math.sin(phase * 3);
+    value = value + fluctuation;
+    
+    // 确保值精确到两位小数
+    value = Math.round(value * 100) / 100;
+
+    data.push([formattedTime, value])
   }
   return data
 }
 
-// 电力对比数据（拟合数据） - 从实时时间开始
+// 风电出力数据（拟合数据） - 本地时间前一年内
+const generateWindPowerData = () => {
+  const data = []
+  const now = new Date();
+  // 计算本地时间前一年的时间点
+  const baseTime = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).getTime();
+  const interval = 30 * 24 * 60 * 60 * 1000; // 约1个月间隔
+
+  for (let i = 0; i < 12; i++) {
+    // 从去年的本月开始，向后推移12个月
+    const time = new Date(baseTime + i * interval);
+    const formattedTime = `${time.getFullYear()}-${String(time.getMonth() + 1).padStart(2, '0')}-${String(time.getDate()).padStart(2, '0')}`;
+    
+    // 根据用户提供的样例图表创建风电出力数据
+    // 数据范围大致在100-250之间，为每个数据添加随机小数
+    let value = 0;
+    // 生成随机小数（0-0.9）
+    const randomDecimal = Math.random();
+    
+    if (i === 0) {
+      value = 120 + randomDecimal;
+    } else if (i === 1) {
+      value = 210 + randomDecimal;
+    } else if (i === 2) {
+      value = 160 + randomDecimal;
+    } else if (i === 3) {
+      value = 180 + randomDecimal;
+    } else if (i === 4) {
+      value = 150 + randomDecimal;
+    } else if (i === 5) {
+      value = 140 + randomDecimal;
+    } else if (i === 6) {
+      value = 160 + randomDecimal;
+    } else if (i === 7) {
+      value = 170 + randomDecimal;
+    } else if (i === 8) {
+      value = 235 + randomDecimal;
+    } else if (i === 9) {
+      value = 240 + randomDecimal;
+    } else if (i === 10) {
+      value = 230 + randomDecimal;
+    } else if (i === 11) {
+      value = 220 + randomDecimal;
+    }
+
+    // 确保值精确到小数点后一位
+    value = Math.round(value * 10) / 10;
+
+    data.push([formattedTime, value])
+  }
+  return data
+}
+
+// 电力对比数据（拟合数据） - 1年以内
 const generatePowerComparisonData = () => {
   const photovoltaicData = []
   const waterPowerData = []
   const baseTime = new Date().getTime() // 从当前实时时间开始
-  const interval = 90 * 24 * 60 * 60 * 1000
+  const interval = 30 * 24 * 60 * 60 * 1000 // 约1个月间隔
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 12; i++) {
     const time = new Date(baseTime + i * interval)
     const formattedTime = `${time.getFullYear()}-${String(time.getMonth() + 1).padStart(2, '0')}-${String(time.getDate()).padStart(2, '0')}`
 
@@ -111,13 +217,14 @@ const initPhotovoltaicChart = () => {
     yAxis: {
       type: 'value',
       name: '出力(kW)',
-      min: 200,
-      max: 500,
+      min: 0,
+      max: 30,
       nameTextStyle: {
         color: '#9fe9f0'
       },
       axisLabel: {
-        color: '#9fe9f0'
+        color: '#9fe9f0',
+        formatter: '{value}'
       },
       axisLine: {
         lineStyle: {
@@ -173,7 +280,9 @@ const initWaterInflowChart = () => {
         const date = params[0].name
         // 检查value是数组还是简单值
         const value = Array.isArray(params[0].value) ? params[0].value[1] : params[0].value
-        return `Time: ${date}<br/>入库流量: ${value}`
+        // 格式化值为两位小数
+        const formattedValue = value.toFixed(2)
+        return `Time: ${date}<br/>入库流量: ${formattedValue}`
       },
       backgroundColor: 'rgba(51, 51, 51, 0.8)',
       borderColor: '#00DDFF',
@@ -206,8 +315,8 @@ const initWaterInflowChart = () => {
     yAxis: {
       type: 'value',
       name: '流量(m³/a)',
-      min: 500,
-      max: 2500,
+      min: 0,
+      max: 250,
       nameTextStyle: {
         color: '#9fe9f0'
       },
@@ -365,6 +474,109 @@ const initPowerComparisonChart = () => {
   })
 }
 
+// 初始化风电出力图表
+const initWindPowerChart = () => {
+  if (!windPowerChartRef.value) return
+
+  const chart = echarts.init(windPowerChartRef.value)
+  const data = generateWindPowerData()
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function (params: any) {
+        const date = params[0].name
+        // 检查value是数组还是简单值
+        const value = Array.isArray(params[0].value) ? params[0].value[1] : params[0].value
+        // 格式化值为一位小数
+        const formattedValue = value.toFixed(1)
+        return `Time: ${date}<br/>风电出力: ${formattedValue}`
+      },
+      backgroundColor: 'rgba(51, 51, 51, 0.8)',
+      borderColor: '#FF9500',
+      textStyle: {
+        color: '#fff'
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: data.map(item => item[0]),
+      axisLabel: {
+        formatter: function (value: string) {
+          const date = new Date(value)
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        },
+        color: '#9fe9f0'
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#FF9500'
+        }
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '出力(MW)',
+      min: 100,
+      max: 300,
+      nameTextStyle: {
+        color: '#9fe9f0'
+      },
+      axisLabel: {
+        color: '#9fe9f0'
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#FF9500'
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: 'rgba(255, 149, 0, 0.2)'
+        }
+      }
+    },
+    series: [{
+      name: '风电出力',
+      type: 'line',
+      data: data.map(item => item[1]),
+      lineStyle: {
+        color: '#FF9500',
+        width: 2
+      },
+      itemStyle: {
+        color: '#FF9500'
+      }
+    },
+    {
+      name: '趋势线',
+      type: 'line',
+      data: data.map((item, index) => [item[0], 150 + index * 5.8]),
+      lineStyle: {
+        color: '#00DDFF',
+        width: 1,
+        type: 'dashed'
+      },
+      showSymbol: false,
+      tooltip: { show: false }
+    }]
+  }
+
+  chart.setOption(option)
+
+  // 响应式调整
+  window.addEventListener('resize', () => {
+    chart.resize()
+  })
+}
+
 // 组件挂载后初始化图表
 onMounted(() => {
   // 延迟初始化，确保DOM已渲染
@@ -372,6 +584,7 @@ onMounted(() => {
     initPhotovoltaicChart()
     initWaterInflowChart()
     initPowerComparisonChart()
+    initWindPowerChart()
   }, 100)
 })
 </script>
@@ -379,11 +592,11 @@ onMounted(() => {
 <template>
   <div class="complementary-analysis-container">
     <div class="header-title">
-      <h2>互补分析平台</h2>
+      <h2>互补分析</h2>
       <div class="date-display">{{ new Date().toLocaleString('zh-CN', {
         year: 'numeric', month: '2-digit', day:
           '2-digit',
-}) }}</div>
+      }) }}</div>
     </div>
     <!-- 图表区域 -->
     <div class="charts-wrapper">
@@ -409,6 +622,14 @@ onMounted(() => {
           <span class="chart-title">电力对比</span>
         </div>
         <div ref="powerComparisonChartRef" class="chart-container"></div>
+      </div>
+
+      <!-- 风电出力图表 -->
+      <div class="chart-item">
+        <div class="chart-header">
+          <span class="chart-title">风电出力</span>
+        </div>
+        <div ref="windPowerChartRef" class="chart-container"></div>
       </div>
     </div>
   </div>

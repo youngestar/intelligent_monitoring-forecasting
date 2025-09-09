@@ -2,7 +2,7 @@
   <div class="light-forecasting-container">
     <!-- 头部标题 -->
     <div class="header-title">
-      <h2>光电预测与分析平台</h2>
+      <h2>光电预测与分析</h2>
       <div class="date-display">{{ currentDate }}</div>
     </div>
 
@@ -37,9 +37,12 @@
         <div class="light-intensity-card">
           <div class="card-title">光照强度监测</div>
           <div class="chart-tabs">
-            <button class="tab-btn" :class="{ active: currentLightIntensityPeriod === 'day' }" @click="changeLightIntensityPeriod('day')">日</button>
-            <button class="tab-btn" :class="{ active: currentLightIntensityPeriod === 'week' }" @click="changeLightIntensityPeriod('week')">周</button>
-            <button class="tab-btn" :class="{ active: currentLightIntensityPeriod === 'month' }" @click="changeLightIntensityPeriod('month')">月</button>
+            <button class="tab-btn" :class="{ active: currentLightIntensityPeriod === 'day' }"
+              @click="changeLightIntensityPeriod('day')">日</button>
+            <button class="tab-btn" :class="{ active: currentLightIntensityPeriod === 'week' }"
+              @click="changeLightIntensityPeriod('week')">周</button>
+            <button class="tab-btn" :class="{ active: currentLightIntensityPeriod === 'month' }"
+              @click="changeLightIntensityPeriod('month')">月</button>
           </div>
           <div id="lightIntensityChart" class="chart-container"></div>
         </div>
@@ -326,31 +329,31 @@ let lightStationData = [
 // 当前时间周期 (日/周/月)
 const currentLightIntensityPeriod = ref('day')
 
-  // 日光照强度数据
+// 日光照强度数据
 const dayLightIntensityData = {
   time: ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
   intensity: [0, 65, 95, 70, 20, 0]
 }
 
-  // 周光照强度数据
+// 周光照强度数据
 const weekLightIntensityData = {
   time: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
   intensity: [65, 70, 75, 68, 72, 80, 85]
 }
 
-  // 月光照强度数据
+// 月光照强度数据
 const monthLightIntensityData = {
   time: ['1月', '2月', '3月', '4月', '5月', '6月'],
   intensity: [45, 52, 65, 80, 95, 90]
 }
 
-  // 当前使用的数据
+// 当前使用的数据
 let lightIntensityData = JSON.parse(JSON.stringify(dayLightIntensityData))
 
-  // 切换时间周期
+// 切换时间周期
 const changeLightIntensityPeriod = (period: 'day' | 'week' | 'month') => {
   currentLightIntensityPeriod.value = period
-  
+
   // 根据选择的周期更新数据
   if (period === 'day') {
     lightIntensityData = JSON.parse(JSON.stringify(dayLightIntensityData))
@@ -359,7 +362,7 @@ const changeLightIntensityPeriod = (period: 'day' | 'week' | 'month') => {
   } else if (period === 'month') {
     lightIntensityData = JSON.parse(JSON.stringify(monthLightIntensityData))
   }
-  
+
   // 重新初始化图表
   initLightIntensityChart()
 }

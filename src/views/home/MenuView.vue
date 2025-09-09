@@ -51,7 +51,7 @@ const logout = () => {
         <img src="@/assets/companyLogo.jpg" alt="兴发集团Logo" class="logo">
         <span class="system-name">风光水储互补协同优化智慧调度平台</span>
       </div>
-      
+
       <div class="nav-right">
         <span class="user-info">
           <el-avatar :size="40">
@@ -65,15 +65,8 @@ const logout = () => {
     <div class="main-content">
       <!-- 侧边栏菜单 -->
       <aside class="sidebar">
-        <el-menu 
-          active-text-color="#36CFC9" 
-          background-color="transparent" 
-          :default-active="nowActive"
-          text-color="#fff"
-          @select="turnTo" 
-          unique-opened
-          class="sidebar-menu"
-        >
+        <el-menu active-text-color="#36CFC9" background-color="transparent" :default-active="nowActive"
+          text-color="#fff" @select="turnTo" unique-opened class="sidebar-menu">
           <el-menu-item index="home">
             <el-icon>
               <Document />
@@ -149,7 +142,7 @@ const logout = () => {
   align-items: center;
   justify-content: space-between;
   padding: 0 30px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   border-bottom: 2px solid #36CFC9;
 }
@@ -170,7 +163,7 @@ const logout = () => {
   font-size: 20px;
   font-weight: bold;
   color: #36CFC9;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .nav-right {
@@ -212,7 +205,7 @@ const logout = () => {
   width: 220px;
   background: linear-gradient(180deg, #16213e, #0D1136);
   overflow-y: auto;
-  box-shadow: 2px 0 15px rgba(0,0,0,0.3);
+  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3);
   border-right: 1px solid rgba(54, 207, 201, 0.2);
 }
 
@@ -305,7 +298,7 @@ const logout = () => {
 }
 
 /* 确保路由视图内容正确显示 */
-.content-wrapper > :deep(div) {
+.content-wrapper> :deep(div) {
   height: 100%;
   width: 100%;
 }

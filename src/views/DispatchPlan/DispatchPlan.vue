@@ -1,7 +1,7 @@
 <template>
   <div class="dispatch-plan-container">
     <div class="header-title">
-      <h1 class="main-title">资源调度分布图</h1>
+      <h1 class="main-title">资源调度</h1>
       <div class="date-display">{{ currentDate }}</div>
     </div>
     <div class="main-content">

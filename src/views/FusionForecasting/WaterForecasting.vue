@@ -2,7 +2,7 @@
   <div class="water-forecasting-container">
     <!-- 头部标题 -->
     <div class="header-title">
-      <h2>水电预测与分析平台</h2>
+      <h2>水电预测与分析</h2>
       <div class="date-display">{{ currentDate }}</div>
     </div>
 
@@ -37,9 +37,12 @@
         <div class="water-usage-card">
           <div class="card-title">水资源使用情况</div>
           <div class="chart-tabs">
-            <button class="tab-btn" :class="{ active: currentWaterUsagePeriod === 'day' }" @click="changeWaterUsagePeriod('day')">日</button>
-            <button class="tab-btn" :class="{ active: currentWaterUsagePeriod === 'week' }" @click="changeWaterUsagePeriod('week')">周</button>
-            <button class="tab-btn" :class="{ active: currentWaterUsagePeriod === 'month' }" @click="changeWaterUsagePeriod('month')">月</button>
+            <button class="tab-btn" :class="{ active: currentWaterUsagePeriod === 'day' }"
+              @click="changeWaterUsagePeriod('day')">日</button>
+            <button class="tab-btn" :class="{ active: currentWaterUsagePeriod === 'week' }"
+              @click="changeWaterUsagePeriod('week')">周</button>
+            <button class="tab-btn" :class="{ active: currentWaterUsagePeriod === 'month' }"
+              @click="changeWaterUsagePeriod('month')">月</button>
           </div>
           <div id="waterUsageChart" class="chart-container"></div>
         </div>
@@ -332,34 +335,34 @@ let waterLevelData = {
 // 当前时间周期 (日/周/月)
 const currentWaterUsagePeriod = ref('day')
 
-  // 日用水量数据
+// 日用水量数据
 const dayWaterUsageData = {
   time: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
   actual: [350, 320, 850, 920, 880, 420],
   forecast: [340, 310, 840, 910, 870, 410]
 }
 
-  // 周用水量数据
+// 周用水量数据
 const weekWaterUsageData = {
   time: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
   actual: [8500, 8300, 8400, 8600, 8700, 8200, 8100],
   forecast: [8400, 8200, 8300, 8500, 8600, 8100, 8000]
 }
 
-  // 月用水量数据
+// 月用水量数据
 const monthWaterUsageData = {
   time: ['1月', '2月', '3月', '4月', '5月', '6月'],
   actual: [258000, 235000, 242000, 268000, 275000, 262000],
   forecast: [256000, 233000, 240000, 266000, 273000, 260000]
 }
 
-  // 当前使用的数据
+// 当前使用的数据
 let waterUsageData = JSON.parse(JSON.stringify(dayWaterUsageData))
 
-  // 切换时间周期
+// 切换时间周期
 const changeWaterUsagePeriod = (period: 'day' | 'week' | 'month') => {
   currentWaterUsagePeriod.value = period
-  
+
   // 根据选择的周期更新数据
   if (period === 'day') {
     waterUsageData = JSON.parse(JSON.stringify(dayWaterUsageData))
@@ -368,7 +371,7 @@ const changeWaterUsagePeriod = (period: 'day' | 'week' | 'month') => {
   } else if (period === 'month') {
     waterUsageData = JSON.parse(JSON.stringify(monthWaterUsageData))
   }
-  
+
   // 重新初始化图表
   initWaterUsageChart()
 }

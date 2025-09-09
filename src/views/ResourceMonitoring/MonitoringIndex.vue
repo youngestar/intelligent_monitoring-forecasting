@@ -645,14 +645,14 @@ const handleResize = () => {
 const refreshStationData = () => {
   // 模拟数据刷新过程
   // 在实际应用中，这里应该调用API获取最新数据
-  
+
   // 显示加载状态
   const refreshBtn = document.querySelector('.btn-refresh') as HTMLButtonElement | null
   if (refreshBtn) {
     refreshBtn.innerHTML = '刷新中...'
     refreshBtn.disabled = true
   }
-  
+
   // 模拟网络请求延迟
   setTimeout(() => {
     // 随机更新一些电站状态
@@ -668,7 +668,7 @@ const refreshStationData = () => {
         }
         station.status = newStatus
       }
-      
+
       // 随机更新负载率
       if (Math.random() > 0.5) {
         const currentLoad = parseInt(station.load)
@@ -677,25 +677,25 @@ const refreshStationData = () => {
         station.load = `${newLoad}%`
       }
     })
-    
+
     // 更新电站统计数据
     const normalCount = stationOperationData.filter(s => s.status === '正常').length
     const attentionCount = stationOperationData.filter(s => s.status === '注意').length
     const warningCount = stationOperationData.filter(s => s.status === '警告').length
-    
+
     stationStatusData.normal = normalCount
     stationStatusData.attention = attentionCount
     stationStatusData.warning = warningCount
-    
+
     // 重新初始化状态图表以显示更新后的数据
     initStatusChart()
-    
+
     // 恢复按钮状态
     if (refreshBtn) {
       refreshBtn.innerHTML = '刷新'
       refreshBtn.disabled = false
     }
-    
+
     // 显示刷新成功的提示
     ElMessage.success('电站状态数据已刷新')
   }, 1000)
@@ -727,10 +727,11 @@ onUnmounted(() => {
     <div class="main-content">
       <!-- 顶部标题 -->
       <div class="header-title">
-        <h2>资源监测平台</h2>
+        <h2>资源监测</h2>
         <div class="date-display">{{ new Date().toLocaleString('zh-CN', {
           year: 'numeric', month: '2-digit', day:
-          '2-digit'}) }}</div>
+            '2-digit'
+        }) }}</div>
       </div>
 
       <!-- 内容区域 -->
@@ -746,13 +747,13 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="table-container">
-              <div class="table-header">
-                <h3>当前电站运行状态监控</h3>
-                <div class="table-controls">
-                  <button class="btn-refresh" @click="refreshStationData">刷新</button>
-                </div>
+            <div class="table-header">
+              <h3>当前电站运行状态监控</h3>
+              <div class="table-controls">
+                <button class="btn-refresh" @click="refreshStationData">刷新</button>
               </div>
-              <table class="operation-table">
+            </div>
+            <table class="operation-table">
               <thead>
                 <tr>
                   <th>站名</th>

@@ -2,7 +2,7 @@
   <div class="energy-storage-container">
     <!-- 头部标题 -->
     <div class="header-title">
-      <h2>储能预测与分析平台</h2>
+      <h2>储能预测与分析</h2>
       <div class="date-display">{{ currentDate }}</div>
     </div>
 
@@ -37,9 +37,12 @@
         <div class="efficiency-monitoring-card">
           <div class="card-title">储能效率监测</div>
           <div class="chart-tabs">
-            <button class="tab-btn" :class="{ active: currentEfficiencyPeriod === 'day' }" @click="changeEfficiencyPeriod('day')">日</button>
-            <button class="tab-btn" :class="{ active: currentEfficiencyPeriod === 'week' }" @click="changeEfficiencyPeriod('week')">周</button>
-            <button class="tab-btn" :class="{ active: currentEfficiencyPeriod === 'month' }" @click="changeEfficiencyPeriod('month')">月</button>
+            <button class="tab-btn" :class="{ active: currentEfficiencyPeriod === 'day' }"
+              @click="changeEfficiencyPeriod('day')">日</button>
+            <button class="tab-btn" :class="{ active: currentEfficiencyPeriod === 'week' }"
+              @click="changeEfficiencyPeriod('week')">周</button>
+            <button class="tab-btn" :class="{ active: currentEfficiencyPeriod === 'month' }"
+              @click="changeEfficiencyPeriod('month')">月</button>
           </div>
           <div id="efficiencyMonitoringChart" class="chart-container"></div>
         </div>
@@ -344,31 +347,31 @@ let storageTypeData = [
 // 当前时间周期 (日/周/月)
 const currentEfficiencyPeriod = ref('day')
 
-  // 日效率数据
+// 日效率数据
 const dayEfficiencyData = {
   time: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
   efficiency: [85, 88, 90, 87, 86, 84]
 }
 
-  // 周效率数据
+// 周效率数据
 const weekEfficiencyData = {
   time: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
   efficiency: [86, 88, 90, 87, 85, 89, 88]
 }
 
-  // 月效率数据
+// 月效率数据
 const monthEfficiencyData = {
   time: ['1月', '2月', '3月', '4月', '5月', '6月'],
   efficiency: [84, 86, 88, 90, 89, 87]
 }
 
-  // 当前使用的数据
+// 当前使用的数据
 let efficiencyData = JSON.parse(JSON.stringify(dayEfficiencyData))
 
-  // 切换时间周期
+// 切换时间周期
 const changeEfficiencyPeriod = (period: 'day' | 'week' | 'month') => {
   currentEfficiencyPeriod.value = period
-  
+
   // 根据选择的周期更新数据
   if (period === 'day') {
     efficiencyData = JSON.parse(JSON.stringify(dayEfficiencyData))
@@ -377,7 +380,7 @@ const changeEfficiencyPeriod = (period: 'day' | 'week' | 'month') => {
   } else if (period === 'month') {
     efficiencyData = JSON.parse(JSON.stringify(monthEfficiencyData))
   }
-  
+
   // 重新初始化图表
   initEfficiencyMonitoringChart()
 }

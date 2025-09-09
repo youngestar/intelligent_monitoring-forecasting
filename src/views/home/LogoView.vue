@@ -16,8 +16,7 @@ const goToLogin = () => {
         margin-bottom: 1.5vh;
         border-radius: 100%;
       " @click="goToLogin" />
-    <h1 style="text-align: center; color: #d9a84c; font-size: 8vh">兴发集团</h1>
-    <p style="text-align: center; color: #fff; font-size: 3vh">风光水储互补优化智慧调度平台</p>
+    <p style="text-align: center; color: #fff; font-size: 4vh">风光水储多能互补协同优化决策支撑平台</p>
     <button id="mainButton" @click="goToLogin">开启您的旅途</button>
   </div>
 </template>

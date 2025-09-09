@@ -360,7 +360,7 @@ const generateIntegratedDispatchData = (tabType: string) => {
 const initPowerComparisonChart = () => {
   try {
     if (!powerComparisonChartRef.value) return
-    
+
     // 检查DOM元素宽高是否大于0
     const dom = powerComparisonChartRef.value
     if (!dom.clientWidth || !dom.clientHeight) {
@@ -372,135 +372,135 @@ const initPowerComparisonChart = () => {
       setTimeout(initPowerComparisonChart, 200)
       return
     }
-    
+
     const chart = echarts.init(dom)
-  const { times, photovoltaicData, waterPowerData, windPowerData, energyStorageData, totalLoadData } = generatePowerComparisonData(activeTab.value)
+    const { times, photovoltaicData, waterPowerData, windPowerData, energyStorageData, totalLoadData } = generatePowerComparisonData(activeTab.value)
 
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(51, 51, 51, 0.8)',
-      borderColor: '#37A2FF',
-      textStyle: {
-        color: '#fff'
-      }
-    },
-    legend: {
-      data: ['光伏出力', '水电出力', '风电出力', '储能出力', '总负荷'],
-      textStyle: {
-        color: '#00BFFF'
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: times,
-      axisLabel: {
-        color: '#9fe9f0'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#37A2FF'
-        }
-      }
-    },
-    yAxis: {
-      type: 'value',
-      name: '出力(kW)',
-      nameTextStyle: {
-        color: '#9fe9f0'
-      },
-      axisLabel: {
-        color: '#9fe9f0'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#37A2FF'
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(51, 51, 51, 0.8)',
+        borderColor: '#37A2FF',
+        textStyle: {
+          color: '#fff'
         }
       },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(50, 50, 50, 0.5)'
+      legend: {
+        data: ['光伏出力', '水电出力', '风电出力', '储能出力', '总负荷'],
+        textStyle: {
+          color: '#00BFFF'
         }
-      }
-    },
-    series: [
-      {
-        name: '光伏出力',
-        type: 'line',
-        data: photovoltaicData,
-        lineStyle: {
-          color: '#80FFA5',
-          width: 2
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: times,
+        axisLabel: {
+          color: '#9fe9f0'
         },
-        itemStyle: {
-          color: '#80FFA5'
+        axisLine: {
+          lineStyle: {
+            color: '#37A2FF'
+          }
         }
       },
-      {
-        name: '水电出力',
-        type: 'line',
-        data: waterPowerData,
-        lineStyle: {
-          color: '#00DDFF',
-          width: 2
+      yAxis: {
+        type: 'value',
+        name: '出力(kW)',
+        nameTextStyle: {
+          color: '#9fe9f0'
         },
-        itemStyle: {
-          color: '#00DDFF'
+        axisLabel: {
+          color: '#9fe9f0'
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#37A2FF'
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(50, 50, 50, 0.5)'
+          }
         }
       },
-      {
-        name: '风电出力',
-        type: 'line',
-        data: windPowerData,
-        lineStyle: {
-          color: '#37A2FF',
-          width: 2
+      series: [
+        {
+          name: '光伏出力',
+          type: 'line',
+          data: photovoltaicData,
+          lineStyle: {
+            color: '#80FFA5',
+            width: 2
+          },
+          itemStyle: {
+            color: '#80FFA5'
+          }
         },
-        itemStyle: {
-          color: '#37A2FF'
-        }
-      },
-      {
-        name: '储能出力',
-        type: 'line',
-        data: energyStorageData,
-        lineStyle: {
-          color: '#FFBF00',
-          width: 2
+        {
+          name: '水电出力',
+          type: 'line',
+          data: waterPowerData,
+          lineStyle: {
+            color: '#00DDFF',
+            width: 2
+          },
+          itemStyle: {
+            color: '#00DDFF'
+          }
         },
-        itemStyle: {
-          color: '#FFBF00'
-        }
-      },
-      {
-        name: '总负荷',
-        type: 'line',
-        data: totalLoadData,
-        lineStyle: {
-          color: '#FF0087',
-          width: 3,
-          type: 'dashed'
+        {
+          name: '风电出力',
+          type: 'line',
+          data: windPowerData,
+          lineStyle: {
+            color: '#37A2FF',
+            width: 2
+          },
+          itemStyle: {
+            color: '#37A2FF'
+          }
         },
-        itemStyle: {
-          color: '#FF0087'
+        {
+          name: '储能出力',
+          type: 'line',
+          data: energyStorageData,
+          lineStyle: {
+            color: '#FFBF00',
+            width: 2
+          },
+          itemStyle: {
+            color: '#FFBF00'
+          }
+        },
+        {
+          name: '总负荷',
+          type: 'line',
+          data: totalLoadData,
+          lineStyle: {
+            color: '#FF0087',
+            width: 3,
+            type: 'dashed'
+          },
+          itemStyle: {
+            color: '#FF0087'
+          }
         }
-      }
-    ]
-  }
+      ]
+    }
 
-  chart.setOption(option)
+    chart.setOption(option)
 
-  // 响应式调整
-  window.addEventListener('resize', () => {
-    chart.resize()
-  })
+    // 响应式调整
+    window.addEventListener('resize', () => {
+      chart.resize()
+    })
   } catch (error) {
     console.error('初始化电力对比图表时出错:', error)
     // 稍后重试
@@ -512,7 +512,7 @@ const initPowerComparisonChart = () => {
 const initWaterLevelChart = () => {
   try {
     if (!waterStorageChartRef.value) return
-    
+
     // 检查DOM元素宽高是否大于0
     const dom = waterStorageChartRef.value
     if (!dom.clientWidth || !dom.clientHeight) {
@@ -524,88 +524,88 @@ const initWaterLevelChart = () => {
       setTimeout(initWaterLevelChart, 200)
       return
     }
-    
+
     const chart = echarts.init(dom)
-  const { times, data } = generateWaterLevelData(activeTab.value)
+    const { times, data } = generateWaterLevelData(activeTab.value)
 
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(51, 51, 51, 0.8)',
-      borderColor: '#00DDFF',
-      textStyle: {
-        color: '#fff'
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: times,
-      axisLabel: {
-        color: '#9fe9f0'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#00DDFF'
-        }
-      }
-    },
-    yAxis: {
-      type: 'value',
-      name: '水位(m)',
-      min: startLevel.value - 10,
-      max: startLevel.value + 10,
-      nameTextStyle: {
-        color: '#9fe9f0'
-      },
-      axisLabel: {
-        color: '#9fe9f0'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#00DDFF'
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(51, 51, 51, 0.8)',
+        borderColor: '#00DDFF',
+        textStyle: {
+          color: '#fff'
         }
       },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(50, 50, 50, 0.5)'
-        }
-      }
-    },
-    series: [
-      {
-        name: '水位',
-        type: 'line',
-        data: data,
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(0, 221, 255, 0.8)' },
-            { offset: 1, color: 'rgba(0, 221, 255, 0.2)' }
-          ])
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: times,
+        axisLabel: {
+          color: '#9fe9f0'
         },
-        lineStyle: {
-          color: '#00DDFF',
-          width: 2
-        },
-        itemStyle: {
-          color: '#00DDFF'
+        axisLine: {
+          lineStyle: {
+            color: '#00DDFF'
+          }
         }
-      }
-    ]
-  }
+      },
+      yAxis: {
+        type: 'value',
+        name: '水位(m)',
+        min: startLevel.value - 10,
+        max: startLevel.value + 10,
+        nameTextStyle: {
+          color: '#9fe9f0'
+        },
+        axisLabel: {
+          color: '#9fe9f0'
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#00DDFF'
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(50, 50, 50, 0.5)'
+          }
+        }
+      },
+      series: [
+        {
+          name: '水位',
+          type: 'line',
+          data: data,
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(0, 221, 255, 0.8)' },
+              { offset: 1, color: 'rgba(0, 221, 255, 0.2)' }
+            ])
+          },
+          lineStyle: {
+            color: '#00DDFF',
+            width: 2
+          },
+          itemStyle: {
+            color: '#00DDFF'
+          }
+        }
+      ]
+    }
 
-  chart.setOption(option)
+    chart.setOption(option)
 
-  // 响应式调整
-  window.addEventListener('resize', () => {
-    chart.resize()
-  })
+    // 响应式调整
+    window.addEventListener('resize', () => {
+      chart.resize()
+    })
   } catch (error) {
     console.error('初始化水位图表时出错:', error)
     // 稍后重试
@@ -617,7 +617,7 @@ const initWaterLevelChart = () => {
 const initLoadChart = () => {
   try {
     if (!loadChartRef.value) return
-    
+
     // 检查DOM元素宽高是否大于0
     const dom = loadChartRef.value
     if (!dom.clientWidth || !dom.clientHeight) {
@@ -629,99 +629,99 @@ const initLoadChart = () => {
       setTimeout(initLoadChart, 200)
       return
     }
-    
+
     const chart = echarts.init(dom)
-  const { times, loadData, forecastData } = generateLoadData(activeTab.value)
+    const { times, loadData, forecastData } = generateLoadData(activeTab.value)
 
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(51, 51, 51, 0.8)',
-      borderColor: '#FF0087',
-      textStyle: {
-        color: '#fff'
-      }
-    },
-    legend: {
-      data: ['实际负荷', '预测负荷'],
-      textStyle: {
-        color: '#00BFFF'
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: times,
-      axisLabel: {
-        color: '#9fe9f0'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#FF0087'
-        }
-      }
-    },
-    yAxis: {
-      type: 'value',
-      name: '负荷(kW)',
-      nameTextStyle: {
-        color: '#9fe9f0'
-      },
-      axisLabel: {
-        color: '#9fe9f0'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#FF0087'
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(51, 51, 51, 0.8)',
+        borderColor: '#FF0087',
+        textStyle: {
+          color: '#fff'
         }
       },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(50, 50, 50, 0.5)'
+      legend: {
+        data: ['实际负荷', '预测负荷'],
+        textStyle: {
+          color: '#00BFFF'
         }
-      }
-    },
-    series: [
-      {
-        name: '实际负荷',
-        type: 'line',
-        data: loadData,
-        lineStyle: {
-          color: '#FF0087',
-          width: 2
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: times,
+        axisLabel: {
+          color: '#9fe9f0'
         },
-        itemStyle: {
-          color: '#FF0087'
+        axisLine: {
+          lineStyle: {
+            color: '#FF0087'
+          }
         }
       },
-      {
-        name: '预测负荷',
-        type: 'line',
-        data: forecastData,
-        lineStyle: {
-          color: '#FFBF00',
-          width: 2,
-          type: 'dashed'
+      yAxis: {
+        type: 'value',
+        name: '负荷(kW)',
+        nameTextStyle: {
+          color: '#9fe9f0'
         },
-        itemStyle: {
-          color: '#FFBF00'
+        axisLabel: {
+          color: '#9fe9f0'
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#FF0087'
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(50, 50, 50, 0.5)'
+          }
         }
-      }
-    ]
-  }
+      },
+      series: [
+        {
+          name: '实际负荷',
+          type: 'line',
+          data: loadData,
+          lineStyle: {
+            color: '#FF0087',
+            width: 2
+          },
+          itemStyle: {
+            color: '#FF0087'
+          }
+        },
+        {
+          name: '预测负荷',
+          type: 'line',
+          data: forecastData,
+          lineStyle: {
+            color: '#FFBF00',
+            width: 2,
+            type: 'dashed'
+          },
+          itemStyle: {
+            color: '#FFBF00'
+          }
+        }
+      ]
+    }
 
-  chart.setOption(option)
+    chart.setOption(option)
 
-  // 响应式调整
-  window.addEventListener('resize', () => {
-    chart.resize()
-  })
+    // 响应式调整
+    window.addEventListener('resize', () => {
+      chart.resize()
+    })
   } catch (error) {
     console.error('初始化负荷图表时出错:', error)
     // 稍后重试
@@ -733,7 +733,7 @@ const initLoadChart = () => {
 const initIntegratedDispatchChart = () => {
   try {
     if (!integratedDispatchChartRef.value) return
-    
+
     // 检查DOM元素宽高是否大于0
     const dom = integratedDispatchChartRef.value
     if (!dom.clientWidth || !dom.clientHeight) {
@@ -745,101 +745,101 @@ const initIntegratedDispatchChart = () => {
       setTimeout(initIntegratedDispatchChart, 200)
       return
     }
-    
+
     const chart = echarts.init(dom)
-  const data = generateIntegratedDispatchData(activeTab.value)
+    const data = generateIntegratedDispatchData(activeTab.value)
 
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      },
-      backgroundColor: 'rgba(51, 51, 51, 0.8)',
-      borderColor: '#37A2FF',
-      textStyle: {
-        color: '#fff'
-      },
-      formatter: function (params: any) {
-        const name = params[0].name
-        const planned = params[0].value
-        const actual = params[1].value
-        const unit = params[0].seriesName
-        return `${name}<br/>计划${unit}: ${planned}<br/>实际${unit}: ${actual}`
-      }
-    },
-    legend: {
-      data: ['计划值', '实际值'],
-      textStyle: {
-        color: '#00BFFF'
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'value',
-      nameTextStyle: {
-        color: '#9fe9f0'
-      },
-      axisLabel: {
-        color: '#9fe9f0'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#37A2FF'
-        }
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(50, 50, 50, 0.5)'
-        }
-      }
-    },
-    yAxis: {
-      type: 'category',
-      data: data.map(item => item.name),
-      axisLabel: {
-        color: '#9fe9f0'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#37A2FF'
-        }
-      }
-    },
-    series: [
-      {
-        name: '计划值',
-        type: 'bar',
-        data: data.map(item => item.value),
-        itemStyle: {
-          color: '#37A2FF'
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
         },
-        barWidth: 20
-      },
-      {
-        name: '实际值',
-        type: 'bar',
-        data: data.map(item => item.actual),
-        itemStyle: {
-          color: '#00DDFF'
+        backgroundColor: 'rgba(51, 51, 51, 0.8)',
+        borderColor: '#37A2FF',
+        textStyle: {
+          color: '#fff'
         },
-        barWidth: 20
-      }
-    ]
-  }
+        formatter: function (params: any) {
+          const name = params[0].name
+          const planned = params[0].value
+          const actual = params[1].value
+          const unit = params[0].seriesName
+          return `${name}<br/>计划${unit}: ${planned}<br/>实际${unit}: ${actual}`
+        }
+      },
+      legend: {
+        data: ['计划值', '实际值'],
+        textStyle: {
+          color: '#00BFFF'
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'value',
+        nameTextStyle: {
+          color: '#9fe9f0'
+        },
+        axisLabel: {
+          color: '#9fe9f0'
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#37A2FF'
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(50, 50, 50, 0.5)'
+          }
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: data.map(item => item.name),
+        axisLabel: {
+          color: '#9fe9f0'
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#37A2FF'
+          }
+        }
+      },
+      series: [
+        {
+          name: '计划值',
+          type: 'bar',
+          data: data.map(item => item.value),
+          itemStyle: {
+            color: '#37A2FF'
+          },
+          barWidth: 20
+        },
+        {
+          name: '实际值',
+          type: 'bar',
+          data: data.map(item => item.actual),
+          itemStyle: {
+            color: '#00DDFF'
+          },
+          barWidth: 20
+        }
+      ]
+    }
 
-  chart.setOption(option)
+    chart.setOption(option)
 
-  // 响应式调整
-  window.addEventListener('resize', () => {
-    chart.resize()
-  })
+    // 响应式调整
+    window.addEventListener('resize', () => {
+      chart.resize()
+    })
   } catch (error) {
     console.error('初始化综合调度图表时出错:', error)
     // 稍后重试
@@ -997,7 +997,7 @@ onMounted(() => {
   onBeforeUnmount(() => {
     clearInterval(timer)
   })
-  
+
   // 增加延迟时间并使用更可靠的初始化方法，确保DOM已完全渲染
   setTimeout(() => {
     // 添加错误处理，避免因DOM未渲染完成导致的图表初始化失败
@@ -1044,7 +1044,7 @@ const handleTabChange = (tabName: any) => {
 <template>
   <div class="complementary-scheduling-container">
     <div class="header-title">
-      <h1>互补调度平台</h1>
+      <h1>互补调度</h1>
       <div class="date-display">{{ new Date().toLocaleString('zh-CN', {
         year: 'numeric', month: '2-digit', day:
           '2-digit',

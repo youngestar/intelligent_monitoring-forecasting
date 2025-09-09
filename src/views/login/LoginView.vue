@@ -140,6 +140,13 @@ const register = (formEI: FormInstance | undefined) => {
 
 <template>
   <div id="home">
+    <img id="logo" class="blinking-shadow" src="@/assets/companyLogo.jpg" alt="logo" style="
+        width: 10vw;
+        margin: 18vh calc(45vw - 8.5px);
+        margin-bottom: 20px;
+        border-radius: 100%;
+      " />
+    <p style="text-align: center; color: #fff; font-size: 3vh; font-weight: 600;">风光水储多能互补协同优化决策支撑平台</p>
     <div id="login" v-show="nowView === 'login'">
       <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" label-width="auto" id="loginForm"
         :autocomplete="rememberMe === false ? 'off' : 'true'" style="width: 90%" @submit.prevent="login(loginFormRef)">
@@ -223,20 +230,18 @@ const register = (formEI: FormInstance | undefined) => {
 
 <style scoped>
 #home {
-  height: 98.2vh;
-  width: 100%;
-  background-image: url(@/assets/mainbg2.jpg);
-  background-size: cover;
-  color: #fff;
-  margin: 0;
-  padding: 0;
   overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 
   #login {
     width: 400px;
     height: 250px;
     margin: auto;
-    margin-top: 300px;
     background-color: #fff;
     border-radius: 10px;
 
@@ -251,7 +256,6 @@ const register = (formEI: FormInstance | undefined) => {
     width: 400px;
     height: 250px;
     margin: auto;
-    margin-top: 300px;
     background-color: #fff;
     border-radius: 10px;
 
@@ -260,6 +264,64 @@ const register = (formEI: FormInstance | undefined) => {
       position: relative;
       top: 25px;
     }
+  }
+}
+
+@keyframes shadowBlink {
+  0% {
+    box-shadow:
+      0 0 20px #d9a84c,
+      0 0 40px #d6b77d;
+  }
+
+  50% {
+    box-shadow:
+      0 0 10px #d9a84c,
+      0 0 20px #ce8e17;
+  }
+
+  100% {
+    box-shadow:
+      0 0 20px #d9a84c,
+      0 0 40px #d6b77d;
+  }
+}
+
+.blinking-shadow {
+  display: inline-block;
+  padding: 5px;
+  /* border-radius: 10px;
+  background-color: #3498db; */
+  animation: shadowBlink 3s infinite alternate;
+}
+
+#mainButton {
+  width: 10vw;
+  height: 4vw;
+  margin: 4vh 45vw;
+  font-size: 2vh;
+  font-weight: bold;
+  letter-spacing: 0.15vw;
+  background-color: #d9a84c;
+  color: #333;
+  border-radius: 5vw;
+  transition:
+    color 0.5s,
+    box-shadow 0.5s;
+
+  &:hover {
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 0 10px #d9a84c;
+  }
+}
+
+#logo {
+  transition: background-color 1s;
+
+  &:hover {
+    cursor: pointer;
+    background-color: #d9a84c;
   }
 }
 </style>

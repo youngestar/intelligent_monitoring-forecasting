@@ -2,7 +2,7 @@
   <div class="wind-forecasting-container">
     <!-- 头部标题 -->
     <div class="header-title">
-      <h2>风能预测与分析平台</h2>
+      <h2>风能预测与分析</h2>
       <div class="date-display">{{ currentDate }}</div>
     </div>
 
@@ -896,7 +896,8 @@ onUnmounted(() => {
   overflow: visible;
 }
 
-.left-panel, .right-panel {
+.left-panel,
+.right-panel {
   display: flex;
   flex-direction: column;
   gap: 15px;
