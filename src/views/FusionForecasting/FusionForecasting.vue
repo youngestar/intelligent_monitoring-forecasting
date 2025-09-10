@@ -414,19 +414,19 @@ const changeEnergyType = (type: string) => {
 // 切换地图图层
 const switchMapLayer = (layer: string) => {
   currentMapLayer.value = layer
-  
+
   if (!mapInstance || !AMap) return
-  
+
   // 获取当前已创建的图层
   const layers = mapInstance.getLayers()
-  
+
   // 清除所有图层
   layers.forEach((layer: any) => {
     if (layer instanceof AMap.TileLayer) {
       mapInstance.remove(layer)
     }
   })
-  
+
   // 根据选择的图层类型重新添加图层
   if (layer === 'normal') {
     // 添加标准图层
@@ -462,23 +462,23 @@ const mapReset = () => {
 // 更新能源标记
 const updateEnergyMarkers = () => {
   if (!AMap || !mapInstance) return
-  
+
   // 清除所有旧标记
   markers.forEach((marker: any) => {
     marker.setMap(null)
   })
   markers.clear()
-  
+
   // 根据当前选择的能源类型添加标记
   const energyType = currentEnergyType.value
-  
+
   // 模拟能源站点数据
   const energyStations = getEnergyStations(energyType)
-  
+
   // 添加标记到地图
   energyStations.forEach((station: any) => {
     const markerKey = `${station.type}-${station.name}`
-    
+
     // 创建自定义HTML标记
     const iconContent = `
       <div class="custom-marker" style="position: relative; display: inline-block;">
@@ -513,20 +513,20 @@ const updateEnergyMarkers = () => {
         </div>
       </div>
     `
-    
+
     const marker = new AMap.Marker({
       position: station.coordinates,
       content: iconContent,
       zIndex: 100,
       offset: new AMap.Pixel(-20, -20)
     })
-    
+
     // 绑定点击事件
     marker.on('click', () => {
       selectedRegion.value = station.name
       updateMarkerStyles()
     })
-    
+
     marker.setMap(mapInstance)
     markers.set(markerKey, marker)
   })
@@ -540,24 +540,24 @@ const getEnergyStations = (type: string) => {
     { type: 'hydropower', name: '兴山电站', coordinates: [110.75, 31.18], color: '#4facfe', icon: '💧' },
     { type: 'hydropower', name: '高阳电站', coordinates: [110.80, 31.15], color: '#4facfe', icon: '💧' },
     { type: 'hydropower', name: '峡口电站', coordinates: [110.70, 31.22], color: '#4facfe', icon: '💧' },
-    
+
     // 光伏站
     { type: 'solar', name: '兴山光伏', coordinates: [110.82, 31.20], color: '#ff8042', icon: '☀️' },
     { type: 'solar', name: '南阳光伏', coordinates: [110.73, 31.15], color: '#ff8042', icon: '☀️' },
-    
+
     // 风电站
     { type: 'wind', name: '黄粮风电', coordinates: [110.85, 31.25], color: '#00f2fe', icon: '💨' },
     { type: 'wind', name: '榛子风电', coordinates: [110.68, 31.30], color: '#00f2fe', icon: '💨' },
-    
+
     // 储能站
     { type: 'storage', name: '县城储能', coordinates: [110.78, 31.17], color: '#8884d8', icon: '🔋' },
     { type: 'storage', name: '南阳储能', coordinates: [110.73, 31.15], color: '#8884d8', icon: '🔋' }
   ]
-  
+
   if (type === 'all') {
     return allStations
   }
-  
+
   return allStations.filter(station => station.type === type)
 }
 
@@ -1056,8 +1056,8 @@ onUnmounted(() => {
 .forecast-card {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 30px;
+  padding: 10px;
+  margin-bottom: 20px;
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -1276,7 +1276,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   padding: 15px;
   background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   border-radius: 8px;

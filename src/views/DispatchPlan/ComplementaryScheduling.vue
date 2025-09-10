@@ -376,6 +376,14 @@ const initPowerComparisonChart = () => {
     const chart = echarts.init(dom)
     const { times, photovoltaicData, waterPowerData, windPowerData, energyStorageData, totalLoadData } = generatePowerComparisonData(activeTab.value)
 
+    // 创建图例数据数组，根据表单选项动态添加
+    const legendData = []
+    if (formData.value.photovoltaicData) legendData.push('光伏出力')
+    legendData.push('水电出力') // 水电出力总是显示
+    if (formData.value.windData) legendData.push('风电出力')
+    if (formData.value.energyStorageData) legendData.push('储能出力')
+    if (formData.value.loadData) legendData.push('总负荷')
+
     const option = {
       backgroundColor: 'transparent',
       tooltip: {
@@ -387,7 +395,7 @@ const initPowerComparisonChart = () => {
         }
       },
       legend: {
-        data: ['光伏出力', '水电出力', '风电出力', '储能出力', '总负荷'],
+        data: legendData,
         textStyle: {
           color: '#00BFFF'
         }
@@ -431,7 +439,8 @@ const initPowerComparisonChart = () => {
         }
       },
       series: [
-        {
+        // 光伏出力系列 - 根据表单选项显示或隐藏
+        formData.value.photovoltaicData && {
           name: '光伏出力',
           type: 'line',
           data: photovoltaicData,
@@ -443,6 +452,7 @@ const initPowerComparisonChart = () => {
             color: '#80FFA5'
           }
         },
+        // 水电出力系列 - 始终显示
         {
           name: '水电出力',
           type: 'line',
@@ -455,7 +465,8 @@ const initPowerComparisonChart = () => {
             color: '#00DDFF'
           }
         },
-        {
+        // 风电出力系列 - 根据表单选项显示或隐藏
+        formData.value.windData && {
           name: '风电出力',
           type: 'line',
           data: windPowerData,
@@ -467,7 +478,8 @@ const initPowerComparisonChart = () => {
             color: '#37A2FF'
           }
         },
-        {
+        // 储能出力系列 - 根据表单选项显示或隐藏
+        formData.value.energyStorageData && {
           name: '储能出力',
           type: 'line',
           data: energyStorageData,
@@ -479,7 +491,8 @@ const initPowerComparisonChart = () => {
             color: '#FFBF00'
           }
         },
-        {
+        // 总负荷系列 - 根据表单选项显示或隐藏
+        formData.value.loadData && {
           name: '总负荷',
           type: 'line',
           data: totalLoadData,
@@ -492,7 +505,7 @@ const initPowerComparisonChart = () => {
             color: '#FF0087'
           }
         }
-      ]
+      ].filter(Boolean) // 过滤掉false值，只保留启用的系列
     }
 
     chart.setOption(option)
@@ -597,7 +610,7 @@ const initWaterLevelChart = () => {
             color: '#00DDFF'
           }
         }
-      ]
+      ].filter(Boolean) // 过滤掉false值，当入库流量开关关闭时不显示该系列
     }
 
     chart.setOption(option)
@@ -1068,10 +1081,24 @@ const handleTabChange = (tabName: any) => {
             <ElInputNumber v-model="startLevel" :min="2800" :max="3200" :step="10" class="level-input" />
           </ElFormItem>
           <ElFormItem label="负荷数据">
-            <ElSwitch v-model="formData.loadData" active-color="#00BFFF" inactive-color="#666" />
+            <ElSwitch v-model="formData.loadData" active-color="#00BFFF" inactive-color="#666"
+              style="margin-right: -30px" />
           </ElFormItem>
           <ElFormItem label="入库流量">
-            <ElSwitch v-model="formData.inflowData" active-color="#00BFFF" inactive-color="#666" />
+            <ElSwitch v-model="formData.inflowData" active-color="#00BFFF" inactive-color="#666"
+              style="margin-right: -30px" />
+          </ElFormItem>
+          <ElFormItem label="光伏数据">
+            <ElSwitch v-model="formData.photovoltaicData" active-color="#00BFFF" inactive-color="#666"
+              style="margin-right: -30px" />
+          </ElFormItem>
+          <ElFormItem label="风电数据">
+            <ElSwitch v-model="formData.windData" active-color="#00BFFF" inactive-color="#666"
+              style="margin-right: -30px" />
+          </ElFormItem>
+          <ElFormItem label="储能数据">
+            <ElSwitch v-model="formData.energyStorageData" active-color="#00BFFF" inactive-color="#666"
+              style="margin-right: -30px" />
           </ElFormItem>
         </ElForm>
 
@@ -1290,6 +1317,7 @@ const handleTabChange = (tabName: any) => {
   --el-tabs-header-border-bottom: none;
   --el-tabs-text-color-primary: #fff;
   color: #fff;
+  height: 105px;
 }
 
 .custom-tabs .el-tabs__item {

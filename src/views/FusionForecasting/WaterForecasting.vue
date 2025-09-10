@@ -1073,13 +1073,31 @@ watch(selectedRegion, onRegionChange)
 .water-quality-card,
 .map-section,
 .water-level-card,
-.region-water-card {
+.region-water-card,
+.reservoir-rate-card,
+.efficiency-card {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 20px;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 减小今日预测水电总量卡片的占位空间 */
+.total-forecast-card.compact {
+  padding: 15px;
+  min-height: auto;
+}
+
+.total-forecast-card.compact .forecast-value .value {
+  font-size: 32px;
+  /* 减小字体大小 */
+}
+
+.total-forecast-card.compact .forecast-value .unit {
+  font-size: 16px;
+  /* 减小单位字体大小 */
 }
 
 .map-section {
@@ -1368,6 +1386,66 @@ watch(selectedRegion, onRegionChange)
   border-color: var(--primary-color);
 }
 
+/* 水库蓄水率样式 */
+.reservoir-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reservoir-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.reservoir-name {
+  font-size: 14px;
+  color: #ddd;
+}
+
+.reservoir-percentage {
+  height: 8px;
+  background: linear-gradient(90deg, #4FCAFE 0%, #00f2fe 100%);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 5px;
+  font-size: 12px;
+  color: #000;
+  font-weight: 600;
+  transition: width 0.5s ease;
+}
+
+/* 发电效率分析样式 */
+.efficiency-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 5px;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
 /* 响应式设计 */
 @media (max-width: 1200px) {
   .main-content {
@@ -1381,6 +1459,10 @@ watch(selectedRegion, onRegionChange)
 
   .map-container {
     height: 400px;
+  }
+
+  .efficiency-metrics {
+    grid-template-columns: 1fr;
   }
 }
 

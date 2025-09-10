@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
 import type { EChartsOption } from 'echarts'
 import { ElMessage } from 'element-plus'
+import axios from 'axios'
 
 
 
@@ -64,18 +65,139 @@ const mapConfig = {
 // 当前选中的天气类型
 const selectedWeatherTab = ref('weather')
 
-// 获取真实时间的天气预报数据
-const getRealTimeWeatherData = () => {
+// 和风天气API配置 - 从环境变量获取或使用默认值
+const QWEATHER_API_KEY = import.meta.env.VITE_QWEATHER_API_KEY || 'kt78kybf36'
+const QWEATHER_API_BASE_URL = import.meta.env.VITE_QWEATHER_API_BASE_URL || 'https://kt78kybf36.re.qweatherapi.com/v7' // 使用用户提供的正确API主机地址
+const LOCATION_ID = '101200507' // 湖北省宜昌市兴山县的LocationID
+
+// 天气图标映射
+const weatherIconMap: Record<string, string> = {
+  '100': '☀️', // 晴
+  '101': '🌤️', // 多云
+  '102': '⛅', // 少云
+  '103': '☁️', // 晴间多云
+  '104': '☁️', // 阴
+  '200': '🌫️', // 薄雾
+  '201': '🌫️', // 雾
+  '202': '🌫️', // 霾
+  '203': '🌫️', // 扬沙
+  '204': '🌫️', // 浮尘
+  '205': '🌫️', // 沙尘暴
+  '300': '🌦️', // 阵雨
+  '301': '🌧️', // 强阵雨
+  '302': '⛈️', // 雷阵雨
+  '303': '⛈️', // 强雷阵雨
+  '304': '⛈️', // 雷阵雨伴有冰雹
+  '305': '🌧️', // 小雨
+  '306': '🌧️', // 中雨
+  '307': '🌧️', // 大雨
+  '308': '🌧️', // 暴雨
+  '309': '🌧️', // 大暴雨
+  '310': '🌧️', // 特大暴雨
+  '311': '🌧️', // 冻雨
+  '312': '🌧️', // 小到中雨
+  '313': '🌧️', // 中到大雨
+  '314': '🌧️', // 大到暴雨
+  '400': '🌨️', // 小雪
+  '401': '🌨️', // 中雪
+  '402': '🌨️', // 大雪
+  '403': '🌨️', // 暴雪
+  '404': '🌨️', // 雨夹雪
+  '405': '🌨️', // 雨雪天气
+  '406': '🌨️', // 阵雨夹雪
+  '407': '🌨️', // 阵雪
+  '408': '🌨️', // 小到中雪
+  '409': '🌨️', // 中到大雪
+  '410': '🌨️', // 大到暴雪
+  '500': '🌬️', // 大风
+  '501': '💨', // 烈风
+  '502': '🌀', // 狂风
+  '503': '🌀', // 暴风
+  '504': '🌀', // 台风
+  '507': '💨', // 龙卷风
+  '508': '💨', // 无风
+  '509': '💨', // 微风
+  '510': '💨', // 和风
+  '511': '💨', // 清风
+  '512': '🌬️', // 强风
+  '513': '🌬️', // 疾风
+  '900': '🌡️', // 热
+  '901': '🥶', // 冷
+  '999': '❓'  // 未知
+}
+
+// 获取天气数据
+const fetchWeatherData = async () => {
+  try {
+    // 检查是否有有效的API密钥和基础URL
+    if (QWEATHER_API_KEY && QWEATHER_API_KEY !== 'kt78kybf36' && QWEATHER_API_BASE_URL) {
+      // 尝试调用真实API
+      const response = await axios.get(`${QWEATHER_API_BASE_URL}/weather/7d`, {
+        params: {
+          location: LOCATION_ID,
+          key: QWEATHER_API_KEY
+        }
+      })
+      
+      if (response.data && response.data.code === '200') {
+        // 处理API返回的数据
+        return processWeatherApiResponse(response.data)
+      }
+      console.warn('API返回数据格式不正确或状态码异常')
+    }
+    
+    // 使用模拟数据作为备选
+    console.log('使用模拟天气数据')
+    return getMockWeatherData()
+  } catch (error) {
+    console.error('获取天气数据失败:', error)
+    ElMessage.error('获取天气数据失败，请稍后重试')
+    // 确保始终返回模拟数据
+    return getMockWeatherData()
+  }
+}
+
+// 处理天气API返回的数据
+const processWeatherApiResponse = (apiData: any) => {
   const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   const now = new Date()
-  const weatherData = [
-    { tempLow: 18, tempHigh: 28, icon: '' },
-    { tempLow: 17, tempHigh: 27, icon: '' },
-    { tempLow: 16, tempHigh: 26, icon: '' },
-    { tempLow: 18, tempHigh: 29, icon: '' },
-    { tempLow: 19, tempHigh: 28, icon: '' },
-    { tempLow: 17, tempHigh: 26, icon: '' },
-    { tempLow: 16, tempHigh: 25, icon: '' }
+  
+  // 转换API返回的数据格式为我们需要的格式
+  return apiData.daily.map((day: any, index: number) => {
+    const date = new Date(now)
+    date.setDate(now.getDate() + index)
+    const dayName = index === 0 ? '今天' : weekdays[date.getDay()]
+    
+    return {
+      day: dayName,
+      tempLow: parseInt(day.tempMin),
+      tempHigh: parseInt(day.tempMax),
+      icon: weatherIconMap[day.iconDay] || '❓',
+      description: day.textDay,
+      windDir: day.windDirDay,
+      windScale: day.windScaleDay + '级',
+      humidity: parseInt(day.humidity),
+      precipitation: parseFloat(day.precip)
+    }
+  })
+}
+
+// 获取模拟天气数据（确保数据完整性）
+const getMockWeatherData = () => {
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  const now = new Date()
+  const weatherIcons = ['🌧️', '🌧️', '☀️', '⛅', '🌧️', '☀️', '☀️']
+  const weatherDescriptions = ['大雨', '小雨', '晴', '多云', '雷阵雨', '晴', '晴']
+  const windDirections = ['东北风', '东南风', '西南风', '西北风', '东风', '南风', '北风']
+  const windScales = ['3-4级', '2-3级', '1-2级', '2-3级', '3-4级', '2-3级', '1-2级']
+ const weatherData = [
+    { tempLow: 18, tempHigh: 28, icon: weatherIcons[0], description: weatherDescriptions[0], windDir: windDirections[0], windScale: windScales[0], humidity: 85, precipitation: 15.2 },
+    { tempLow: 17, tempHigh: 27, icon: weatherIcons[1], description: weatherDescriptions[1], windDir: windDirections[1], windScale: windScales[1], humidity: 75, precipitation: 5.6 },
+    { tempLow: 16, tempHigh: 26, icon: weatherIcons[2], description: weatherDescriptions[2], windDir: windDirections[2], windScale: windScales[2], humidity: 60, precipitation: 0 },
+    { tempLow: 18, tempHigh: 29, icon: weatherIcons[3], description: weatherDescriptions[3], windDir: windDirections[3], windScale: windScales[3], humidity: 65, precipitation: 0 },
+    { tempLow: 19, tempHigh: 28, icon: weatherIcons[4], description: weatherDescriptions[4], windDir: windDirections[4], windScale: windScales[4], humidity: 80, precipitation: 12.8 },
+    { tempLow: 17, tempHigh: 26, icon: weatherIcons[5], description: weatherDescriptions[5], windDir: windDirections[5], windScale: windScales[5], humidity: 55, precipitation: 0 },
+    { tempLow: 16, tempHigh: 25, icon: weatherIcons[6], description: weatherDescriptions[6], windDir: windDirections[6], windScale: windScales[6], humidity: 50, precipitation: 0 }
   ]
 
   return weatherData.map((weather, index) => {
@@ -86,7 +208,174 @@ const getRealTimeWeatherData = () => {
   })
 }
 
-const weatherForecastData = ref(getRealTimeWeatherData())
+const weatherForecastData = ref<any[]>([])
+
+// 天气数据更新定时器
+let weatherUpdateTimer: number | null = null
+
+// 初始化天气数据
+const initWeatherData = async () => {
+  try {
+    const data = await fetchWeatherData()
+    weatherForecastData.value = data
+    // 更新温度曲线图
+    if (tempChart) {
+      updateTempChart()
+    }
+  } catch (error) {
+    console.error('初始化天气数据失败:', error)
+  }
+}
+
+// 创建温度曲线图
+let tempChart: any = null
+const initTempChart = () => {
+  const chartDom = document.getElementById('tempChart')
+  if (!chartDom) return
+
+  tempChart = echarts.init(chartDom)
+
+  // 获取温度数据
+  const xAxisData = weatherForecastData.value.map(item => item.day)
+  const highTempData = weatherForecastData.value.map(item => item.tempHigh)
+  const lowTempData = weatherForecastData.value.map(item => item.tempLow)
+
+  const option: EChartsOption = {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      borderColor: '#36CFC9',
+      borderWidth: 1,
+      textStyle: {
+        color: '#fff',
+        fontSize: 12
+      },
+      formatter: function (params: any) {
+        let result = params[0].name + '<br/>'
+        params.forEach((param: any) => {
+          result += param.marker + param.seriesName + ': ' + param.value + '°C<br/>'
+        })
+        return result
+      }
+    },
+    grid: {
+      left: '5%',
+      right: '5%',
+      bottom: '15%',
+      top: '10%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: xAxisData,
+      axisLine: {
+        lineStyle: {
+          color: 'rgba(255, 255, 255, 0.2)'
+        }
+      },
+      axisTick: {
+        show: false
+      },
+      axisLabel: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 10
+      }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: {
+        show: false
+      },
+      axisTick: {
+        show: false
+      },
+      axisLabel: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 10,
+        formatter: '{value}°'
+      },
+      splitLine: {
+        lineStyle: {
+          color: 'rgba(255, 255, 255, 0.1)'
+        }
+      },
+      min: Math.min(...lowTempData) - 2,
+      max: Math.max(...highTempData) + 2
+    },
+    series: [
+      {
+        name: '最高温度',
+        type: 'line',
+        data: highTempData,
+        smooth: true,
+        lineStyle: {
+          color: '#FF7D00',
+          width: 2
+        },
+        itemStyle: {
+          color: '#FF7D00'
+        },
+        showSymbol: true,
+        symbolSize: 6,
+        emphasis: {
+          itemStyle: {
+            borderWidth: 2
+          }
+        }
+      },
+      {
+        name: '最低温度',
+        type: 'line',
+        data: lowTempData,
+        smooth: true,
+        lineStyle: {
+          color: '#4FACFE',
+          width: 2
+        },
+        itemStyle: {
+          color: '#4FACFE'
+        },
+        showSymbol: true,
+        symbolSize: 6,
+        emphasis: {
+          itemStyle: {
+            borderWidth: 2
+          }
+        }
+      }
+    ]
+  }
+
+  tempChart.setOption(option)
+}
+
+// 更新温度曲线图
+const updateTempChart = () => {
+  if (tempChart) {
+    const xAxisData = weatherForecastData.value.map(item => item.day)
+    const highTempData = weatherForecastData.value.map(item => item.tempHigh)
+    const lowTempData = weatherForecastData.value.map(item => item.tempLow)
+
+    tempChart.setOption({
+      xAxis: {
+        data: xAxisData
+      },
+      yAxis: {
+        min: Math.min(...lowTempData) - 2,
+        max: Math.max(...highTempData) + 2
+      },
+      series: [
+        {
+          data: highTempData
+        },
+        {
+          data: lowTempData
+        }
+      ]
+    })
+  }
+}
 
 // 生成基于当前时间的预警信息
 const generateStrategyInfo = () => {
@@ -154,25 +443,52 @@ const stopScrolling = () => {
   }
 }
 
-// 组件挂载时启动滚动
+// 处理温度图表大小变化
+const handleTempChartResize = () => {
+  if (tempChart) {
+    tempChart.resize()
+  }
+}
+
+// 组件挂载时启动滚动和初始化数据
 onMounted(() => {
   initCharts()
   initMap()
+  // 初始化天气数据
+  initWeatherData()
+  // 延迟初始化温度曲线图，确保DOM已加载完成
+  setTimeout(() => {
+    initTempChart()
+  }, 500)
+
+  // 监听窗口大小变化，重新调整图表大小
+  window.addEventListener('resize', handleTempChartResize)
   window.addEventListener('resize', handleResize)
   setTimeout(startScrolling, 1000) // 延迟1秒启动滚动，确保DOM已加载完成
+
+  // 设置每小时更新天气数据
+  weatherUpdateTimer = window.setInterval(initWeatherData, 3600000)
 })
 
-// 组件卸载时清理
-onUnmounted(() => {
+// 组件卸载前清理
+onBeforeUnmount(() => {
   // 销毁图表实例
   if (distributionChart) distributionChart.dispose()
   if (statusChart) statusChart.dispose()
+  if (tempChart) tempChart.dispose()
 
   // 停止滚动
   stopScrolling()
 
+  // 清除天气数据更新定时器
+  if (weatherUpdateTimer) {
+    clearInterval(weatherUpdateTimer)
+    weatherUpdateTimer = null
+  }
+
   // 移除事件监听
   window.removeEventListener('resize', handleResize)
+  window.removeEventListener('resize', handleTempChartResize)
 })
 
 // 电站状态数据
@@ -431,7 +747,7 @@ const updateStationMarkers = () => {
       position: station.coordinates,
       content: iconContent,
       zIndex: 100 + index,
-      offset: new (AMap as any).Pixel(-20, -20)
+      offset: AMap.Pixel ? new AMap.Pixel(-20, -20) : [-20, -20]
     })
 
     // 绑定点击事件 - 显示信息窗口
@@ -444,16 +760,24 @@ const updateStationMarkers = () => {
 
     // 绑定鼠标悬停事件 - 显示标签
     marker.on('mouseover', () => {
-      const label = marker.getContent().querySelector('.marker-label')
-      if (label) {
-        label.style.opacity = '1'
+      const content = marker.getContent()
+      // 检查content是否为DOM元素且支持querySelector方法
+      if (content && typeof content.querySelector === 'function') {
+        const label = content.querySelector('.marker-label')
+        if (label) {
+          label.style.opacity = '1'
+        }
       }
     })
 
     marker.on('mouseout', () => {
-      const label = marker.getContent().querySelector('.marker-label')
-      if (label) {
-        label.style.opacity = '0'
+      const content = marker.getContent()
+      // 检查content是否为DOM元素且支持querySelector方法
+      if (content && typeof content.querySelector === 'function') {
+        const label = content.querySelector('.marker-label')
+        if (label) {
+          label.style.opacity = '0'
+        }
       }
     })
 
@@ -497,7 +821,7 @@ const showInfoWindow = (station: any, marker: any) => {
       </div>
     `,
     size: new (AMap as any).Size(320, 200),
-    offset: new (AMap as any).Pixel(0, -50)
+    offset: AMap.Pixel ? new AMap.Pixel(0, -50) : [0, -50]
   })
 
   infoWindow.open(mapInstance, station.coordinates)
@@ -701,22 +1025,9 @@ const refreshStationData = () => {
   }, 1000)
 }
 
-// 组件挂载时初始化
-onMounted(() => {
-  initCharts()
-  initMap()
-  window.addEventListener('resize', handleResize)
-})
 
-// 组件卸载时清理
-onUnmounted(() => {
-  // 销毁图表实例
-  if (distributionChart) distributionChart.dispose()
-  if (statusChart) statusChart.dispose()
 
-  // 移除事件监听
-  window.removeEventListener('resize', handleResize)
-})
+
 </script>
 
 <template>
@@ -817,28 +1128,15 @@ onUnmounted(() => {
             <div class="weather-forecast">
               <div class="weather-item" v-for="weather in weatherForecastData" :key="weather.day">
                 <div class="weather-day">{{ weather.day }}</div>
-                <div class="weather-icon">
-                  <!-- 天气图标占位 -->
-                </div>
+                <div class="weather-icon">{{ weather.icon }}</div>
+                <div class="weather-desc">{{ weather.description }}</div>
                 <div class="weather-temp">{{ weather.tempLow }}°/{{ weather.tempHigh }}°</div>
+                <div v-if="weather.windDir" class="weather-wind">{{ weather.windDir }} {{ weather.windScale }}级</div>
               </div>
             </div>
             <div class="temperature-chart">
-              <!-- 简化的温度曲线图 -->
-              <div class="chart-lines"></div>
-              <div class="temp-labels">
-                <span>13°</span><span>15°</span><span>16°</span><span>17°</span><span>19°</span><span>17°</span><span>16°</span>
-              </div>
-              <div class="weather-icons">
-                <!-- 天气图标占位 -->
-                <span class="weather-icon-text">雨</span>
-                <span class="weather-icon-text">雨</span>
-                <span class="weather-icon-text">晴</span>
-                <span class="weather-icon-text">多云</span>
-                <span class="weather-icon-text">雨</span>
-                <span class="weather-icon-text">晴</span>
-                <span class="weather-icon-text">晴</span>
-              </div>
+              <!-- 使用echarts实现的温度曲线图 -->
+              <div id="tempChart" class="temp-chart"></div>
             </div>
           </div>
           <div class="strategy-container">
@@ -1246,78 +1544,152 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  max-height: 95vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(54, 207, 201, 0.5) transparent;
+}
+
+.right-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.right-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.right-section::-webkit-scrollbar-thumb {
+  background-color: rgba(54, 207, 201, 0.5);
+  border-radius: 3px;
+}
+
+.right-section::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(54, 207, 201, 0.8);
 }
 
 .weather-container {
+  height: 45vh;
+  overflow-y: auto;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 15px;
+  border-radius: 12px;
+  padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .weather-container h3 {
   margin: 0 0 15px 0;
   color: #36CFC9;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .weather-forecast {
   display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .weather-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 10px;
-  width: 30%;
+  flex: 1;
+  min-width: 80px;
+  text-align: center;
+  padding: 15px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.weather-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(54, 207, 201, 0.2);
+}
+
+.weather-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(54, 207, 201, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.weather-item:hover::before {
+  left: 100%;
 }
 
 .weather-day {
-  font-size: 12px;
-  margin-bottom: 5px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+  font-weight: 500;
 }
 
-.weather-icon img {
-  width: 30px;
-  height: 30px;
-  margin-bottom: 5px;
+.weather-icon {
+  font-size: 32px;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+}
+
+.weather-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 4px;
+}
+
+.weather-wind {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
 }
 
 .weather-temp {
-  font-size: 12px;
-  color: #aaa;
+  font-size: 14px;
+  color: #fff;
+  font-weight: 600;
 }
 
 .temperature-chart {
   position: relative;
-  height: 100px;
+  height: 180px;
+  margin-top: 10px;
+  padding: 10px 5px;
 }
 
-.chart-lines {
-  height: 40px;
-  background-image: linear-gradient(to right, transparent 0%, rgba(54, 207, 201, 0.2) 50%, transparent 100%);
-  margin-bottom: 10px;
-}
-
-.temp-labels,
-.weather-icons {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  margin-bottom: 5px;
+.temp-chart {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .weather-icon-text {
-  padding: 5px 10px;
-  background: rgba(255, 255, 255, 0.8);
+  display: inline-block;
+  padding: 5px;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
   margin: 0 2px;
-  font-size: 12px;
-  color: #333;
+  transition: all 0.3s ease;
+}
+
+.weather-icon-text:hover {
+  transform: scale(1.2);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .strategy-container {
