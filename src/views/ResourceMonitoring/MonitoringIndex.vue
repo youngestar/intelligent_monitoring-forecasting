@@ -46,6 +46,13 @@ const energyTypeConfig = {
   wind: { name: '风电站', color: '#7fbf00', icon: '💨' }
 }
 
+// 天气雷达类型配置
+const weatherRadarConfig = {
+  satellite: { name: '卫星云图', color: '#FF6B6B', icon: '☁️' },
+  radar: { name: '雷达回波', color: '#4ECDC4', icon: '🌩️' },
+  lightning: { name: '三维闪电', color: '#FFD166', icon: '⚡' }
+}
+
 // 图表实例
 let distributionChart: any = null
 let statusChart: any = null
@@ -1195,6 +1202,11 @@ const refreshStationData = () => {
             <button v-for="(config, type) in energyTypeConfig" :key="type"
               :class="['energy-type-btn', { active: currentEnergyType === type }]" :style="{ '--color': config.color }"
               @click="changeEnergyType(type as 'all' | 'hydro' | 'solar' | 'wind')">
+              {{ config.name }}
+            </button>
+            <button v-for="(config, type) in weatherRadarConfig" :key="type"
+              :class="['energy-type-btn']" :style="{ '--color': config.color }"
+              @click="() => {}">
               {{ config.name }}
             </button>
           </div>

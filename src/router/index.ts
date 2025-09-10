@@ -93,12 +93,12 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: '/',
+    path: '/logo',
     name: 'logo',
     component: LogoView,
   },
   {
-    path: '/login',
+    path: '/',
     name: 'login',
     // 登录路由, 经过路由守卫拦截后强行进入登录
     component: () => import('../views/login/LoginView.vue'),

@@ -30,19 +30,19 @@ const generatePhotovoltaicData = () => {
     const valleyValue = 5.0;
     const amplitude = (peakValue - valleyValue) / 2;
     const midPoint = valleyValue + amplitude;
-    
+
     // 计算月份在12个月周期中的位置（1月为起点，转换为0-2π范围）
     // 调整相位使7月为波峰（1月为波谷）
     const phase = ((month - 1) / 12) * 2 * Math.PI - Math.PI;
-    
+
     // 使用余弦函数创建平滑的单波峰曲线
     // 添加一个轻微的非线性因子来微调曲线形状，使坡度变化更加均匀
     let value = midPoint + amplitude * Math.cos(phase);
-    
+
     // 添加一个小的波动因子使曲线更加平滑自然
     const fluctuation = 0.2 * Math.sin(phase * 3);
     value = value + fluctuation;
-    
+
     // 确保值精确到小数点后一位
     value = Math.round(value * 10) / 10;
 
@@ -72,19 +72,19 @@ const generateWaterInflowData = () => {
     const valleyValue = 25;
     const amplitude = (peakValue - valleyValue) / 2;
     const midPoint = valleyValue + amplitude;
-    
+
     // 计算月份在12个月周期中的位置（1月为起点，转换为0-2π范围）
     // 调整相位使7月为波峰（1月为波谷）
     const phase = ((month - 1) / 12) * 2 * Math.PI - Math.PI;
-    
+
     // 使用余弦函数创建平滑的单波峰曲线
     // 添加一个轻微的非线性因子来微调曲线形状，使坡度变化更加均匀
     let value = midPoint + amplitude * Math.cos(phase);
-    
+
     // 添加一个小的波动因子使曲线更加平滑自然
     const fluctuation = 0.5 * Math.sin(phase * 3);
     value = value + fluctuation;
-    
+
     // 确保值精确到两位小数
     value = Math.round(value * 100) / 100;
 
@@ -105,13 +105,13 @@ const generateWindPowerData = () => {
     // 从去年的本月开始，向后推移12个月
     const time = new Date(baseTime + i * interval);
     const formattedTime = `${time.getFullYear()}-${String(time.getMonth() + 1).padStart(2, '0')}-${String(time.getDate()).padStart(2, '0')}`;
-    
+
     // 根据用户提供的样例图表创建风电出力数据
     // 数据范围大致在100-250之间，为每个数据添加随机小数
     let value = 0;
     // 生成随机小数（0-0.9）
     const randomDecimal = Math.random();
-    
+
     if (i === 0) {
       value = 120 + randomDecimal;
     } else if (i === 1) {
@@ -150,6 +150,7 @@ const generateWindPowerData = () => {
 const generatePowerComparisonData = () => {
   const photovoltaicData = []
   const waterPowerData = []
+  const storageData = []
   const baseTime = new Date().getTime() // 从当前实时时间开始
   const interval = 30 * 24 * 60 * 60 * 1000 // 约1个月间隔
 
@@ -161,11 +162,15 @@ const generatePowerComparisonData = () => {
     photovoltaicData.push([formattedTime, Math.round(300 + 100 * Math.sin(i * 0.7))])
     // 水电出力数据
     waterPowerData.push([formattedTime, Math.round(300 + 150 * Math.sin(i * 0.6 + 1.5))])
+    // 储能数据 - 模拟储能系统在不同季节的充放电情况
+    const storageValue = Math.round(150 + 100 * Math.sin(i * 0.8 + 3))
+    storageData.push([formattedTime, storageValue])
   }
 
   return {
     photovoltaicData,
-    waterPowerData
+    waterPowerData,
+    storageData
   }
 }
 
@@ -363,36 +368,36 @@ const initWaterInflowChart = () => {
 }
 
 // 初始化电力对比图表
-const initPowerComparisonChart = () => {
-  if (!powerComparisonChartRef.value) return
+  const initPowerComparisonChart = () => {
+    if (!powerComparisonChartRef.value) return
 
-  const chart = echarts.init(powerComparisonChartRef.value)
-  const { photovoltaicData, waterPowerData } = generatePowerComparisonData()
+    const chart = echarts.init(powerComparisonChartRef.value)
+    const { photovoltaicData, waterPowerData, storageData } = generatePowerComparisonData()
 
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: function (params: any) {
-        let result = `Time: ${params[0].name}<br/>`
-        params.forEach((param: any) => {
-          result += `${param.seriesName}: ${param.value[1]}<br/>`
-        })
-        return result
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        formatter: function (params: any) {
+          let result = `Time: ${params[0].name}<br/>`
+          params.forEach((param: any) => {
+            result += `${param.seriesName}: ${param.value[1]}<br/>`
+          })
+          return result
+        },
+        backgroundColor: 'rgba(51, 51, 51, 0.8)',
+        borderColor: '#37A2FF',
+        textStyle: {
+          color: '#fff'
+        }
       },
-      backgroundColor: 'rgba(51, 51, 51, 0.8)',
-      borderColor: '#37A2FF',
-      textStyle: {
-        color: '#fff'
-      }
-    },
-    legend: {
-      data: ['光伏出力', '水电出力'],
-      top: 0,
-      textStyle: {
-        color: '#00BFFF'
-      }
-    },
+      legend: {
+        data: ['光伏出力', '水电出力', '储能出力'],
+        top: 0,
+        textStyle: {
+          color: '#00BFFF'
+        }
+      },
     grid: {
       left: '3%',
       right: '4%',
@@ -461,6 +466,18 @@ const initPowerComparisonChart = () => {
         },
         itemStyle: {
           color: '#37A2FF'
+        }
+      },
+      {
+        name: '储能出力',
+        type: 'line',
+        data: storageData.map(item => [item[0], item[1] / 500]),
+        lineStyle: {
+          color: '#FFD700', // 金色表示储能
+          width: 2
+        },
+        itemStyle: {
+          color: '#FFD700'
         }
       }
     ]
@@ -554,18 +571,6 @@ const initWindPowerChart = () => {
       itemStyle: {
         color: '#FF9500'
       }
-    },
-    {
-      name: '趋势线',
-      type: 'line',
-      data: data.map((item, index) => [item[0], 150 + index * 5.8]),
-      lineStyle: {
-        color: '#00DDFF',
-        width: 1,
-        type: 'dashed'
-      },
-      showSymbol: false,
-      tooltip: { show: false }
     }]
   }
 
@@ -616,6 +621,14 @@ onMounted(() => {
         <div ref="waterInflowChartRef" class="chart-container"></div>
       </div>
 
+      <!-- 风电出力图表 -->
+      <div class="chart-item">
+        <div class="chart-header">
+          <span class="chart-title">风电出力</span>
+        </div>
+        <div ref="windPowerChartRef" class="chart-container"></div>
+      </div>
+
       <!-- 电力对比图表 -->
       <div class="chart-item">
         <div class="chart-header">
@@ -624,13 +637,6 @@ onMounted(() => {
         <div ref="powerComparisonChartRef" class="chart-container"></div>
       </div>
 
-      <!-- 风电出力图表 -->
-      <div class="chart-item">
-        <div class="chart-header">
-          <span class="chart-title">风电出力</span>
-        </div>
-        <div ref="windPowerChartRef" class="chart-container"></div>
-      </div>
     </div>
   </div>
 </template>
