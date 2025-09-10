@@ -260,58 +260,121 @@ const turbineList = ref([
   }
 ])
 
+// 从weather.json加载天气数据
+import weatherDataJson from '@/assets/weather.json'
+
 // 获取真实时间的天气预报数据
 const getRealTimeWindWeatherData = () => {
   const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   const now = new Date()
-  const weatherData = [
-    {
-      icon: '💨',
-      temp: '25',
-      description: '晴 微风',
-      windSpeed: '3-5'
-    },
-    {
-      icon: '💨',
-      temp: '24',
-      description: '多云 和风',
-      windSpeed: '5-7'
-    },
-    {
-      icon: '💨',
-      temp: '23',
-      description: '阴 大风',
-      windSpeed: '8-10'
-    },
-    {
-      icon: '💨',
-      temp: '26',
-      description: '晴 和风',
-      windSpeed: '4-6'
-    },
-    {
-      icon: '💨',
-      temp: '27',
-      description: '多云 微风',
-      windSpeed: '2-4'
-    }
-  ]
-
-  return weatherData.map((weather, index) => {
+  const result: any[] = []
+  
+  for (let i = 0; i < 5; i++) {
     const date = new Date(now)
-    date.setDate(now.getDate() + index)
+    date.setDate(now.getDate() + i)
     let timeName
-    if (index === 0) {
+    if (i === 0) {
       timeName = '今天'
-    } else if (index === 1) {
+    } else if (i === 1) {
       timeName = '明天'
-    } else if (index === 2) {
+    } else if (i === 2) {
       timeName = '后天'
     } else {
       timeName = weekdays[date.getDay()]
     }
-    return { ...weather, time: timeName }
-  })
+    
+    // 格式化日期为YYYY-MM-DD格式
+    const dateStr = date.toISOString().split('T')[0]
+    
+    // 在weather.json中查找对应的日期数据
+    const jsonWeather = weatherDataJson.weather_data.find((item: any) => item.date === dateStr)
+    
+    if (jsonWeather) {
+      // 从JSON中提取数据并转换为需要的格式
+      // 解析温度范围，取平均温度
+      const tempMatch = jsonWeather.temperature.match(/(\d+)℃~(\d+)℃/)
+      const temp = tempMatch ? Math.floor((parseInt(tempMatch[1]) + parseInt(tempMatch[2])) / 2).toString() : getRandomTemp(22, 28).toString()
+      
+      // 根据天气描述选择图标
+      const icon = getWeatherIcon(jsonWeather.weather)
+      
+      // 解析风速
+      const windMatch = jsonWeather.wind.match(/(.*) (\d+)级/)
+      const windLevel = windMatch ? parseInt(windMatch[2]) : getRandomWindScale()
+      const windSpeed = getWindSpeedRange(windLevel)
+      
+      // 组合描述信息
+      const description = jsonWeather.weather + ' ' + (windMatch ? windMatch[1] + windMatch[2] + '级' : '微风')
+      
+      result.push({
+        time: timeName,
+        icon,
+        temp,
+        description,
+        windSpeed
+      })
+    } else {
+      // 日期不存在时使用虚拟随机天气数据
+      const weatherIcons = ['💨', '☀️', '☁️', '⛅', '🌧️']
+      const weatherDescriptions = ['晴', '多云', '阴', '小雨', '雷阵雨']
+      const windDescriptions = ['微风', '和风', '清风', '强风', '疾风']
+      
+      const iconIndex = Math.floor(Math.random() * weatherIcons.length)
+      const descIndex = Math.floor(Math.random() * weatherDescriptions.length)
+      const windIndex = Math.floor(Math.random() * windDescriptions.length)
+      const windLevel = getRandomWindScale()
+      
+      result.push({
+        time: timeName,
+        icon: weatherIcons[iconIndex],
+        temp: getRandomTemp(22, 28).toString(),
+        description: weatherDescriptions[descIndex] + ' ' + windDescriptions[windIndex],
+        windSpeed: getWindSpeedRange(windLevel)
+      })
+    }
+  }
+  
+  return result
+}
+
+// 根据天气描述获取图标
+const getWeatherIcon = (weather: string) => {
+  // 处理复合天气描述，优先匹配更具体的情况
+  if (weather.includes('晴转多云') || weather.includes('多云转晴')) return '🌤️' // 晴间多云
+  if (weather.includes('小雨')) return '🌦️' // 小雨
+  if (weather.includes('中雨')) return '🌧️' // 中雨
+  if (weather.includes('大雨')) return '⛈️' // 大雨/雷阵雨
+  
+  // 处理单一天气描述
+  if (weather.includes('晴')) return '☀️' // 晴天
+  if (weather.includes('多云')) return '⛅' // 多云
+  if (weather.includes('阴')) return '☁️' // 阴天
+  if (weather.includes('雨')) return '🌧️' // 雨（通用）
+  if (weather.includes('雪')) return '🌨️' // 雪
+  
+  return '💨' // 未知天气类型（风资源页面用风图标表示）
+}
+
+// 生成随机温度
+const getRandomTemp = (min: number, max: number) => {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+// 生成随机风力等级
+const getRandomWindScale = () => {
+  return Math.floor(Math.random() * 5) + 1 // 1-5级
+}
+
+// 根据风力等级获取风速范围
+const getWindSpeedRange = (level: number) => {
+  const ranges = {
+    1: '1-2',
+    2: '2-3',
+    3: '3-5',
+    4: '5-7',
+    5: '8-10'
+  }
+  return ranges[level as keyof typeof ranges] || '3-5'
 }
 
 // 天气预报
@@ -934,7 +997,10 @@ onUnmounted(() => {
 
 .wind-resource-container {
   width: 100%;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
   overflow: auto;

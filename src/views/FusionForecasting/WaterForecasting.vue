@@ -1018,7 +1018,10 @@ watch(selectedRegion, onRegionChange)
 .water-forecasting-container {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #0D1136 0%, #161F4A 100%);
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: #fff;
   padding: 15px;
   overflow: auto;

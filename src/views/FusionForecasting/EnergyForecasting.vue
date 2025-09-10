@@ -1057,7 +1057,10 @@ watch(selectedRegion, onRegionChange)
 .energy-storage-container {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #1A103A 0%, #2D1A50 100%);
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: #fff;
   padding: 15px;
   overflow: auto;

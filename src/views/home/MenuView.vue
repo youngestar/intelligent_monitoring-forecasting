@@ -49,7 +49,7 @@ const logout = () => {
     <header class="top-navbar">
       <div class="logo-container">
         <img src="@/assets/companyLogo.jpg" alt="兴发集团Logo" class="logo">
-        <span class="system-name">风光水储互补协同优化智慧调度平台</span>
+        <span class="system-name">风光水储多能互补协同优化决策支撑平台</span>
       </div>
 
       <div class="nav-right">
@@ -293,7 +293,10 @@ const logout = () => {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: #0D1136;
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   padding: 0;
 }
 

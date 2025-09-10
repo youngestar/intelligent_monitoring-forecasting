@@ -126,48 +126,145 @@ const weatherIconMap: Record<string, string> = {
   '999': '❓'  // 未知
 }
 
+// 从weather.json加载天气数据
+import weatherDataJson from '@/assets/weather.json'
+
 // 获取天气数据
 const fetchWeatherData = async () => {
   try {
-    // 检查是否有有效的API密钥和基础URL
-    if (QWEATHER_API_KEY && QWEATHER_API_KEY !== 'kt78kybf36' && QWEATHER_API_BASE_URL) {
-      // 尝试调用真实API
-      const response = await axios.get(`${QWEATHER_API_BASE_URL}/weather/7d`, {
-        params: {
-          location: LOCATION_ID,
-          key: QWEATHER_API_KEY
-        }
-      })
-      
-      if (response.data && response.data.code === '200') {
-        // 处理API返回的数据
-        return processWeatherApiResponse(response.data)
-      }
-      console.warn('API返回数据格式不正确或状态码异常')
-    }
-    
-    // 使用模拟数据作为备选
-    console.log('使用模拟天气数据')
-    return getMockWeatherData()
+    console.log('尝试从weather.json加载天气数据')
+    // 首先尝试从weather.json加载数据
+    return getWeatherDataFromJson()
   } catch (error) {
-    console.error('获取天气数据失败:', error)
-    ElMessage.error('获取天气数据失败，请稍后重试')
-    // 确保始终返回模拟数据
+    console.error('从weather.json获取天气数据失败:', error)
+    // 如果加载失败，使用模拟数据
     return getMockWeatherData()
   }
+}
+
+// 从JSON文件获取天气数据
+const getWeatherDataFromJson = () => {
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  const now = new Date()
+  const result: any[] = []
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(now)
+    date.setDate(now.getDate() + i)
+    const dayName = i === 0 ? '今天' : weekdays[date.getDay()]
+
+    // 格式化日期为YYYY-MM-DD格式
+    const dateStr = date.toISOString().split('T')[0]
+
+    // 在weather.json中查找对应的日期数据
+    const jsonWeather = weatherDataJson.weather_data.find((item: any) => item.date === dateStr)
+
+    if (jsonWeather) {
+      // 从JSON中提取数据并转换为需要的格式
+      // 解析温度范围
+      const tempMatch = jsonWeather.temperature.match(/(\d+)℃~(\d+)℃/)
+      const tempLow = tempMatch ? parseInt(tempMatch[1]) : getRandomTemp(16, 20)
+      const tempHigh = tempMatch ? parseInt(tempMatch[2]) : getRandomTemp(25, 32)
+
+      // 解析风速
+      const windMatch = jsonWeather.wind.match(/(.*) (\d+)级/)
+      const windDir = windMatch ? windMatch[1] : getRandomWindDir()
+      const windScale = windMatch ? windMatch[2] : getRandomWindScale()
+
+      // 根据天气描述选择图标
+      const icon = getWeatherIcon(jsonWeather.weather)
+
+      result.push({
+        day: dayName,
+        tempLow,
+        tempHigh,
+        icon,
+        description: jsonWeather.weather,
+        windDir,
+        windScale: windScale + '级',
+        humidity: getRandomHumidity(50, 90),
+        precipitation: getRandomPrecipitation(0, 20)
+      })
+    } else {
+      // 日期不存在时使用虚拟随机天气数据
+      const weatherIcons = ['☀️', '⛅', '☁️', '🌧️', '🌦️']
+      const weatherDescriptions = ['晴', '多云', '阴', '小雨', '雷阵雨']
+      const windDirections = ['东北风', '东南风', '西南风', '西北风', '东风', '南风', '北风']
+
+      const randomIndex = Math.floor(Math.random() * weatherIcons.length)
+
+      result.push({
+        day: dayName,
+        tempLow: getRandomTemp(16, 20),
+        tempHigh: getRandomTemp(25, 32),
+        icon: weatherIcons[randomIndex],
+        description: weatherDescriptions[randomIndex],
+        windDir: windDirections[Math.floor(Math.random() * windDirections.length)],
+        windScale: getRandomWindScale() + '级',
+        humidity: getRandomHumidity(50, 90),
+        precipitation: getRandomPrecipitation(0, 20)
+      })
+    }
+  }
+
+  return result
+}
+
+// 根据天气描述获取图标
+const getWeatherIcon = (weather: string) => {
+  // 处理复合天气描述，优先匹配更具体的情况
+  if (weather.includes('晴转多云') || weather.includes('多云转晴')) return '🌤️' // 晴间多云
+  if (weather.includes('小雨')) return '🌦️' // 小雨
+  if (weather.includes('中雨')) return '🌧️' // 中雨
+  if (weather.includes('大雨')) return '⛈️' // 大雨/雷阵雨
+  
+  // 处理单一天气描述
+  if (weather.includes('晴')) return '☀️' // 晴天
+  if (weather.includes('多云')) return '⛅' // 多云
+  if (weather.includes('阴')) return '☁️' // 阴天
+  if (weather.includes('雨')) return '🌧️' // 雨（通用）
+  if (weather.includes('雪')) return '🌨️' // 雪
+  
+  return '❓' // 未知天气类型
+}
+
+// 生成随机温度
+const getRandomTemp = (min: number, max: number) => {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+// 生成随机风向
+const getRandomWindDir = () => {
+  const directions = ['东北风', '东南风', '西南风', '西北风', '东风', '南风', '北风']
+  return directions[Math.floor(Math.random() * directions.length)]
+}
+
+// 生成随机风力等级
+const getRandomWindScale = () => {
+  return Math.floor(Math.random() * 5) + 1 // 1-5级
+}
+
+// 生成随机湿度
+const getRandomHumidity = (min: number, max: number) => {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+// 生成随机降水量
+const getRandomPrecipitation = (min: number, max: number) => {
+  return Math.round(Math.random() * (max - min) + min * 10) / 10
 }
 
 // 处理天气API返回的数据
 const processWeatherApiResponse = (apiData: any) => {
   const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   const now = new Date()
-  
+
   // 转换API返回的数据格式为我们需要的格式
   return apiData.daily.map((day: any, index: number) => {
     const date = new Date(now)
     date.setDate(now.getDate() + index)
     const dayName = index === 0 ? '今天' : weekdays[date.getDay()]
-    
+
     return {
       day: dayName,
       tempLow: parseInt(day.tempMin),
@@ -190,7 +287,7 @@ const getMockWeatherData = () => {
   const weatherDescriptions = ['大雨', '小雨', '晴', '多云', '雷阵雨', '晴', '晴']
   const windDirections = ['东北风', '东南风', '西南风', '西北风', '东风', '南风', '北风']
   const windScales = ['3-4级', '2-3级', '1-2级', '2-3级', '3-4级', '2-3级', '1-2级']
- const weatherData = [
+  const weatherData = [
     { tempLow: 18, tempHigh: 28, icon: weatherIcons[0], description: weatherDescriptions[0], windDir: windDirections[0], windScale: windScales[0], humidity: 85, precipitation: 15.2 },
     { tempLow: 17, tempHigh: 27, icon: weatherIcons[1], description: weatherDescriptions[1], windDir: windDirections[1], windScale: windScales[1], humidity: 75, precipitation: 5.6 },
     { tempLow: 16, tempHigh: 26, icon: weatherIcons[2], description: weatherDescriptions[2], windDir: windDirections[2], windScale: windScales[2], humidity: 60, precipitation: 0 },
@@ -864,7 +961,7 @@ const initDistributionChart = () => {
       {
         name: '电站数量',
         type: 'pie',
-        radius: '60%',
+        radius: '50%',
         center: ['50%', '60%'],
         data: statisticalData.map(item => ({ name: item.name, value: item.count })),
         emphasis: {
@@ -919,7 +1016,7 @@ const initStatusChart = () => {
       {
         name: '运行状态',
         type: 'pie',
-        radius: '60%',
+        radius: '50%',
         center: ['50%', '60%'],
         data: [
           { name: '正常', value: stationStatusData.normal, itemStyle: { color: '#00B42A' } },
@@ -1131,7 +1228,7 @@ const refreshStationData = () => {
                 <div class="weather-icon">{{ weather.icon }}</div>
                 <div class="weather-desc">{{ weather.description }}</div>
                 <div class="weather-temp">{{ weather.tempLow }}°/{{ weather.tempHigh }}°</div>
-                <div v-if="weather.windDir" class="weather-wind">{{ weather.windDir }} {{ weather.windScale }}级</div>
+                <div v-if="weather.windDir" class="weather-wind">{{ weather.windDir }} {{ weather.windScale }}</div>
               </div>
             </div>
             <div class="temperature-chart">
@@ -1160,7 +1257,10 @@ const refreshStationData = () => {
 <style scoped>
 .monitoring-container {
   width: 100%;
-  background-color: #0D1136;
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: #fff;
   overflow: hidden;
 }

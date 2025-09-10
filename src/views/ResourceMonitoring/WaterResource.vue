@@ -967,7 +967,10 @@ onUnmounted(() => {
 .water-resource-container {
   padding: 0;
   min-height: 100%;
-  background-color: #0D1136;
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
   overflow: auto;

@@ -791,22 +791,22 @@ const isRefreshing = ref(false)
 const refreshData = async () => {
   // 防止重复点击
   if (isRefreshing.value) return
-  
+
   isRefreshing.value = true
-  
+
   try {
     console.log('刷新储能数据')
-    
+
     // 模拟网络请求延迟
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     // 更新所有储能设施数据
     storageList.value.forEach(storage => {
       // 为所有储能设施添加随机波动，而不仅仅是警告状态的设施
       const fluctuation = Math.random() * 5 - 2.5
       // 四舍五入保留1位小数
       storage.soc = Number(Math.max(0, Math.min(100, storage.soc + fluctuation)).toFixed(1))
-      
+
       // 根据SOC值更新状态
       if (storage.soc < 20 || storage.soc > 90) {
         storage.status = 'warning'
@@ -816,14 +816,14 @@ const refreshData = async () => {
         storage.statusText = '正常运行'
       }
     })
-    
+
     // 更新统计数据
     totalStorages.value = storageList.value.length
     normalStorages.value = storageList.value.filter(s => s.status === 'normal').length
     warningStorages.value = storageList.value.filter(s => s.status === 'warning').length
-    
+
     // currentDate是computed属性，会自动更新
-    
+
     // 重新渲染所有图表
     if (storageCapacityChart) {
       const option = storageCapacityChart.getOption()
@@ -840,12 +840,12 @@ const refreshData = async () => {
         storageCapacityChart.setOption(option)
       }
     }
-    
+
     // 重新渲染储能类型分布图
     if (storageTypeChart) {
       initStorageTypeChart()
     }
-    
+
   } catch (error) {
     console.error('刷新数据失败:', error)
   } finally {
@@ -877,7 +877,10 @@ onUnmounted(() => {
 .energy-storage-container {
   padding: 0;
   min-height: 100%;
-  background-color: #0D1136;
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -949,6 +952,7 @@ onUnmounted(() => {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

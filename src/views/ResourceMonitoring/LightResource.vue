@@ -259,53 +259,96 @@ const panelList = ref([
   }
 ])
 
+// 从weather.json加载天气数据
+import weatherDataJson from '@/assets/weather.json'
+
 // 获取真实时间的天气预报数据
 const getRealTimeLightWeatherData = () => {
   const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   const now = new Date()
-  const weatherData = [
-    {
-      icon: '☀️',
-      temp: '32',
-      description: '晴 微风'
-    },
-    {
-      icon: '☁️',
-      temp: '29',
-      description: '多云 微风'
-    },
-    {
-      icon: '🌤️',
-      temp: '30',
-      description: '晴间多云 微风'
-    },
-    {
-      icon: '☀️',
-      temp: '31',
-      description: '晴 微风'
-    },
-    {
-      icon: '🌤️',
-      temp: '32',
-      description: '晴间多云 微风'
-    }
-  ]
-
-  return weatherData.map((weather, index) => {
+  const result: any[] = []
+  
+  for (let i = 0; i < 5; i++) {
     const date = new Date(now)
-    date.setDate(now.getDate() + index)
+    date.setDate(now.getDate() + i)
     let timeName
-    if (index === 0) {
+    if (i === 0) {
       timeName = '今天'
-    } else if (index === 1) {
+    } else if (i === 1) {
       timeName = '明天'
-    } else if (index === 2) {
+    } else if (i === 2) {
       timeName = '后天'
     } else {
       timeName = weekdays[date.getDay()]
     }
-    return { ...weather, time: timeName }
-  })
+    
+    // 格式化日期为YYYY-MM-DD格式
+    const dateStr = date.toISOString().split('T')[0]
+    
+    // 在weather.json中查找对应的日期数据
+    const jsonWeather = weatherDataJson.weather_data.find((item: any) => item.date === dateStr)
+    
+    if (jsonWeather) {
+      // 从JSON中提取数据并转换为需要的格式
+      // 解析温度范围，取最高温度
+      const tempMatch = jsonWeather.temperature.match(/(\d+)℃~(\d+)℃/)
+      const temp = tempMatch ? tempMatch[2] : getRandomTemp(28, 35)
+      
+      // 根据天气描述选择图标
+      const icon = getWeatherIcon(jsonWeather.weather)
+      
+      // 组合描述信息
+      const description = jsonWeather.weather + ' ' + jsonWeather.wind
+      
+      result.push({
+        time: timeName,
+        icon,
+        temp,
+        description
+      })
+    } else {
+      // 日期不存在时使用虚拟随机天气数据
+      const weatherIcons = ['☀️', '☁️', '🌤️', '⛅', '🌧️']
+      const weatherDescriptions = ['晴', '多云', '晴间多云', '阴', '小雨']
+      const windDescriptions = ['微风', '和风', '清风']
+      
+      const iconIndex = Math.floor(Math.random() * weatherIcons.length)
+      const descIndex = Math.floor(Math.random() * weatherDescriptions.length)
+      const windIndex = Math.floor(Math.random() * windDescriptions.length)
+      
+      result.push({
+        time: timeName,
+        icon: weatherIcons[iconIndex],
+        temp: getRandomTemp(28, 35).toString(),
+        description: weatherDescriptions[descIndex] + ' ' + windDescriptions[windIndex]
+      })
+    }
+  }
+  
+  return result
+}
+
+// 根据天气描述获取图标
+const getWeatherIcon = (weather: string) => {
+  // 处理复合天气描述，优先匹配更具体的情况
+  if (weather.includes('晴转多云') || weather.includes('多云转晴')) return '🌤️' // 晴间多云
+  if (weather.includes('小雨')) return '🌦️' // 小雨
+  if (weather.includes('中雨')) return '🌧️' // 中雨
+  if (weather.includes('大雨')) return '⛈️' // 大雨/雷阵雨
+  
+  // 处理单一天气描述
+  if (weather.includes('晴')) return '☀️' // 晴天
+  if (weather.includes('多云')) return '⛅' // 多云
+  if (weather.includes('阴')) return '☁️' // 阴天
+  if (weather.includes('雨')) return '🌧️' // 雨（通用）
+  if (weather.includes('雪')) return '🌨️' // 雪
+  
+  return '❓' // 未知天气类型
+}
+
+// 生成随机温度
+const getRandomTemp = (min: number, max: number) => {
+  return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
 // 天气预报
@@ -931,7 +974,10 @@ onUnmounted(() => {
 .light-resource-container {
   width: 100%;
   height: 100vh;
-  background-color: #0D1136;
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
   overflow: auto;

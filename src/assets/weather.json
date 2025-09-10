@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "location": "宜昌市兴山县",
+    "data_source": ["中国天气网", "中央气象台", "墨迹天气"],
+    "update_time": "2025-09-10T09:33:00+08:00",
+    "data_range": "2025-09-06至2025-09-20"
+  },
+  "weather_data": [
+    {
+      "date": "2025-09-06",
+      "weather": "阴",
+      "temperature": "25℃~30℃",
+      "wind": "东北风 1级"
+    },
+    {
+      "date": "2025-09-07",
+      "weather": "多云转晴",
+      "temperature": "24℃~32℃",
+      "wind": "东南风 1级"
+    },
+    {
+      "date": "2025-09-08",
+      "weather": "小雨转中雨",
+      "temperature": "25℃~33℃",
+      "wind": "东风 1级"
+    },
+    {
+      "date": "2025-09-09",
+      "weather": "多云转晴",
+      "temperature": "25℃~30℃",
+      "wind": "东风 1级"
+    },
+    {
+      "date": "2025-09-10",
+      "weather": "小雨转阴",
+      "temperature": "23℃~30℃",
+      "wind": "南风 1级"
+    },
+    {
+      "date": "2025-09-11",
+      "weather": "小雨转阴",
+      "temperature": "23℃~30℃",
+      "wind": "北风 1级"
+    },
+    {
+      "date": "2025-09-12",
+      "weather": "中雨转大雨",
+      "temperature": "23℃~28℃",
+      "wind": "北风 1级"
+    },
+    {
+      "date": "2025-09-13",
+      "weather": "晴",
+      "temperature": "21℃~33℃",
+      "wind": "北风 1级"
+    },
+    {
+      "date": "2025-09-14",
+      "weather": "晴转阴",
+      "temperature": "23℃~37℃",
+      "wind": "北风 1级"
+    },
+    {
+      "date": "2025-09-15",
+      "weather": "多云转小雨",
+      "temperature": "22℃~37℃",
+      "wind": "北风 1级"
+    },
+    {
+      "date": "2025-09-16",
+      "weather": "小雨",
+      "temperature": "23℃~28℃",
+      "wind": "北风 1级"
+    },
+    {
+      "date": "2025-09-17",
+      "weather": "小雨",
+      "temperature": "19℃~32℃",
+      "wind": "西北风 1级"
+    },
+    {
+      "date": "2025-09-18",
+      "weather": "雨转阴",
+      "temperature": "18℃~33℃",
+      "wind": "东北风转东风 1级"
+    },
+    {
+      "date": "2025-09-19",
+      "weather": "雨",
+      "temperature": "14℃~20℃",
+      "wind": "西北风 1级"
+    },
+    {
+      "date": "2025-09-20",
+      "weather": "雨转阴",
+      "temperature": "15℃~22℃",
+      "wind": "西风 1级"
+    }
+  ]
+}

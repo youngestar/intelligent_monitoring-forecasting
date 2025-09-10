@@ -639,7 +639,10 @@ onMounted(() => {
 .complementary-analysis-container {
   width: 100%;
   min-height: 100vh;
-  background-color: #0D1136;
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   padding: 20px;
   box-sizing: border-box;
   display: flex;

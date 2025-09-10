@@ -864,7 +864,10 @@ onUnmounted(() => {
 .wind-forecasting-container {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: #fff;
   padding: 15px;
   overflow: auto;

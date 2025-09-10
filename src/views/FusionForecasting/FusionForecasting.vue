@@ -9,16 +9,51 @@
     <!-- 主要内容区域 -->
     <div class="main-content">
       <div class="content-area">
-        <!-- 今日预测发电量卡片 -->
-        <div class="forecast-card">
-          <h2 class="card-title">今日预测总发电量</h2>
-          <div class="forecast-value">
-            <span class="value">4,521</span>
-            <span class="unit">万度</span>
+        <!-- 顶部卡片容器 -->
+        <div class="top-cards-container">
+          <!-- 今日预测发电量卡片 -->
+          <div class="forecast-card">
+            <h2 class="card-title">今日预测总发电量</h2>
+            <div class="forecast-value">
+              <span class="value">4,521</span>
+              <span class="unit">万度</span>
+            </div>
+            <div class="forecast-details">
+              <span class="detail-item">较昨日 <span class="increase">+8.2%</span></span>
+              <span class="detail-item">较上周 <span class="increase">+12.5%</span></span>
+            </div>
           </div>
-          <div class="forecast-details">
-            <span class="detail-item">较昨日 <span class="increase">+8.2%</span></span>
-            <span class="detail-item">较上周 <span class="increase">+12.5%</span></span>
+
+          <!-- 新增图表卡片 -->
+          <div class="new-chart-card">
+            <h2 class="card-title">发电趋势分析</h2>
+            <div id="powerTrendChart" class="chart-container"></div>
+          </div>
+
+          <div class="new-chart-card" style="flex: 0.66; max-height: 270px; overflow-y: auto;">
+            <h2 class="card-title">发电数据详情</h2>
+            <div class="data-list-container">
+              <table class="power-data-table">
+                <thead>
+                  <tr>
+                    <th>时间</th>
+                    <th>预测发电</th>
+                    <th>实际发电</th>
+                    <th>状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in powerDataList" :key="item.time">
+                    <td>{{ item.time }}</td>
+                    <td>{{ item.forecast }}万度</td>
+                    <td>{{ item.actual }}万度</td>
+                    <td>
+                      <span :class="['status-badge', item.status]">{{ item.statusText }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -86,61 +121,6 @@
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <!-- 兴山县电力资源分布地图 -->
-          <div class="map-card">
-            <!-- 能源类型选择器 -->
-            <div class="energy-type-selector">
-              <button v-for="(config, type) in energyTypeConfig" :key="type"
-                :class="['energy-type-btn', { active: currentEnergyType === type }]"
-                :style="{ '--color': config.color }" @click="changeEnergyType(type)">
-                {{ config.name }}
-              </button>
-            </div>
-            <div ref="mapRef" id="map"></div>
-            <div class="map-controls">
-              <button class="el-button" @click="mapZoomIn">放大</button>
-              <button class="el-button" @click="mapZoomOut">缩小</button>
-              <button class="el-button" @click="mapReset">重置</button>
-              <div class="layer-switch-container">
-                <button class="el-button layer-btn" :class="{ active: currentMapLayer === 'normal' }"
-                  @click="switchMapLayer('normal')">
-                  标准地图
-                </button>
-                <button class="el-button layer-btn" :class="{ active: currentMapLayer === 'satellite' }"
-                  @click="switchMapLayer('satellite')">
-                  卫星地图
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 右侧内容 -->
-          <div class="right-content">
-            <!-- 图表区域 -->
-            <div class="charts-grid">
-              <!-- 发电资源分析图表 -->
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3>发电资源分析</h3>
-                  <div class="chart-tabs">
-                    <button class="tab-btn active">按类型</button>
-                    <button class="tab-btn">按地区</button>
-                  </div>
-                </div>
-                <div id="powerResourceChart" class="chart-container"></div>
-              </div>
-
-              <!-- 发电负荷监测图表 -->
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3>发电负荷监测</h3>
-                </div>
-                <div id="powerLoadChart" class="chart-container"></div>
-              </div>
-
               <!-- 一排显示的四个图表 -->
               <div class="charts-row">
                 <!-- 用电负荷监测图表 -->
@@ -199,6 +179,68 @@
                     </table>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 兴山县电力资源分布地图 -->
+          <div class="map-card">
+            <!-- 能源类型选择器 -->
+            <div class="energy-type-selector">
+              <button v-for="(config, type) in energyTypeConfig" :key="type"
+                :class="['energy-type-btn', { active: currentEnergyType === type }]"
+                :style="{ '--color': config.color }" @click="changeEnergyType(type)">
+                {{ config.name }}
+              </button>
+            </div>
+            <div ref="mapRef" id="map"></div>
+            <div class="map-controls">
+              <button class="el-button" @click="mapZoomIn">放大</button>
+              <button class="el-button" @click="mapZoomOut">缩小</button>
+              <button class="el-button" @click="mapReset">重置</button>
+              <div class="layer-switch-container">
+                <button class="el-button layer-btn" :class="{ active: currentMapLayer === 'normal' }"
+                  @click="switchMapLayer('normal')">
+                  标准地图
+                </button>
+                <button class="el-button layer-btn" :class="{ active: currentMapLayer === 'satellite' }"
+                  @click="switchMapLayer('satellite')">
+                  卫星地图
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧内容 -->
+          <div class="right-content">
+            <!-- 图表区域 -->
+            <div class="charts-grid">
+              <!-- 发电资源分析图表 -->
+              <div class="chart-card">
+                <div class="chart-header">
+                  <h3>发电资源分析</h3>
+                  <div class="chart-tabs">
+                    <button class="tab-btn active">按类型</button>
+                    <button class="tab-btn">按地区</button>
+                  </div>
+                </div>
+                <div id="powerResourceChart" class="chart-container"></div>
+              </div>
+
+              <!-- 发电负荷监测图表 -->
+              <div class="chart-card">
+                <div class="chart-header">
+                  <h3>发电负荷监测</h3>
+                </div>
+                <div id="powerLoadChart" class="chart-container"></div>
+              </div>
+
+              <!-- 新增发电类型柱状图 -->
+              <div class="chart-card">
+                <div class="chart-header">
+                  <h3>发电类型分布</h3>
+                </div>
+                <div id="powerTypeChart" class="chart-container"></div>
               </div>
             </div>
           </div>
@@ -327,8 +369,111 @@ const maxLoadForecast = ref<any[]>([
   { date: '后天', sanlian: '33.8', lizhuanghe: '30.1', changhepu: '41.8', huanglong: '36.2' }
 ])
 
+// 发电数据列表
+const powerDataList = ref<any[]>([
+  { time: '00:00', forecast: '1.5', actual: '1.4', status: 'normal', statusText: '正常' },
+  { time: '04:00', forecast: '1.3', actual: '1.2', status: 'normal', statusText: '正常' },
+  { time: '08:00', forecast: '2.2', actual: '2.0', status: 'normal', statusText: '正常' },
+  { time: '12:00', forecast: '3.8', actual: '3.6', status: 'normal', statusText: '正常' },
+  { time: '16:00', forecast: '3.5', actual: '3.4', status: 'normal', statusText: '正常' },
+  { time: '20:00', forecast: '2.8', actual: null, status: 'pending', statusText: '待完成' }
+])
+
 // 地图实例
 const mapRef = ref<HTMLDivElement>()
+
+// 初始化发电趋势图表
+const initPowerTrendChart = () => {
+  const chartDom = document.getElementById('powerTrendChart')
+  if (chartDom) {
+    const myChart = echarts.init(chartDom)
+
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis'
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.3)'
+          }
+        },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.3)'
+          }
+        },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        }
+      },
+      series: [
+        {
+          name: '预测发电',
+          type: 'line',
+          data: [150, 130, 220, 380, 350, 280],
+          smooth: true,
+          lineStyle: {
+            color: '#4facfe',
+            width: 3
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              {
+                offset: 0,
+                color: 'rgba(79, 172, 254, 0.5)'
+              },
+              {
+                offset: 1,
+                color: 'rgba(79, 172, 254, 0.1)'
+              }
+            ])
+          },
+          itemStyle: {
+            color: '#4facfe'
+          },
+          symbolSize: 6
+        },
+        {
+          name: '实际发电',
+          type: 'line',
+          data: [140, 120, 200, null, null, null],
+          smooth: true,
+          lineStyle: {
+            color: '#00f2fe',
+            width: 3
+          },
+          itemStyle: {
+            color: '#00f2fe'
+          },
+          symbolSize: 6
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }
+}
 
 // 初始化地图
 const initMap = async () => {
@@ -566,14 +711,15 @@ const handleResize = () => {
   // 处理窗口大小变化
 }
 
-// 初始化图表
+// 初始化图表// 初始化所有图表
 const initCharts = () => {
-  // 初始化所有图表
   initPowerResourceChart()
   initPowerLoadChart()
   initElectricityLoadChart()
   initPowerForecastChart()
   initElectricityDemandChart()
+  initPowerTrendChart()
+  initPowerTypeChart()
 }
 
 // 发电资源分析图表
@@ -704,6 +850,85 @@ const initPowerLoadChart = () => {
             borderWidth: 2
           },
           data: [120, 80, 90, 150, 220, 240, 210, 180]
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }
+}
+
+// 发电类型分布柱状图
+const initPowerTypeChart = () => {
+  const chartDom = document.getElementById('powerTypeChart')
+  if (chartDom) {
+    const myChart = echarts.init(chartDom)
+
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'value',
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.3)'
+          }
+        },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: ['水电', '光伏', '风电', '储能'],
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.3)'
+          }
+        },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        }
+      },
+      series: [
+        {
+          name: '今日发电',
+          type: 'bar',
+          data: [1850, 1250, 980, 441],
+          itemStyle: {
+            borderRadius: [0, 6, 6, 0],
+            color: function(params) {
+              const colorList = ['#4facfe', '#ff8042', '#00f2fe', '#8884d8']
+              return colorList[params.dataIndex]
+            }
+          },
+          label: {
+            show: true,
+            position: 'right',
+            color: 'rgba(255, 255, 255, 0.7)',
+            formatter: '{c}万度'
+          },
+          emphasis: {
+            itemStyle: {
+              opacity: 0.8
+            }
+          }
         }
       ]
     }
@@ -950,6 +1175,7 @@ const renderAllCharts = () => {
   initElectricityLoadChart()
   initPowerForecastChart()
   initElectricityDemandChart()
+  initPowerTrendChart()
 }
 
 // 更新标记样式
@@ -1031,9 +1257,14 @@ onUnmounted(() => {
 .fusion-forecasting-container {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0D1136 0%, #1A2151 100%);
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: #fff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 /* 主要内容区域 */
@@ -1046,39 +1277,64 @@ onUnmounted(() => {
 /* 内容区域 */
 .content-area {
   width: 100%;
-  padding: 30px;
+  padding: 20px;
   overflow-y: auto;
   max-width: 100vw;
   box-sizing: border-box;
 }
 
+/* 顶部卡片容器 */
+.top-cards-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
 /* 今日预测发电量卡片 */
 .forecast-card {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  padding: 10px;
-  margin-bottom: 20px;
-  text-align: center;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 75px;
+  text-align: left;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(10px);
+  width: 350px;
+  flex-shrink: 0;
+}
+
+/* 新增图表卡片 */
+.new-chart-card {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 350px;
 }
 
 .card-title {
-  font-size: 24px;
-  margin-bottom: 20px;
+  font-size: 18px;
+  margin-bottom: 12px;
   color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
 }
 
 .forecast-value {
   display: flex;
   align-items: baseline;
-  justify-content: center;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .value {
-  font-size: 48px;
+  font-size: 38px;
   font-weight: bold;
   background: linear-gradient(45deg, #4facfe, #00f2fe);
   -webkit-background-clip: text;
@@ -1087,16 +1343,15 @@ onUnmounted(() => {
 }
 
 .unit {
-  font-size: 18px;
-  margin-left: 10px;
+  font-size: 16px;
+  margin-left: 8px;
   color: rgba(255, 255, 255, 0.7);
 }
 
 .forecast-details {
   display: flex;
-  justify-content: center;
-  gap: 30px;
-  font-size: 14px;
+  gap: 20px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -1111,8 +1366,8 @@ onUnmounted(() => {
 /* 中心布局容器 */
 .center-layout {
   display: grid;
-  grid-template-columns: 1fr minmax(400px, 600px) 1fr;
-  gap: 20px;
+  grid-template-columns: 1fr minmax(400px, 550px) 1fr;
+  gap: 15px;
   align-items: start;
   width: 100%;
   max-width: 1920px;
@@ -1129,50 +1384,53 @@ onUnmounted(() => {
 .stats-grid {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
 }
 
 .stat-card {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  padding: 20px;
+  height: 250px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 15px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
 }
 
 .stat-header {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .stat-header h3 {
-  font-size: 18px;
+  font-size: 16px;
   color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
 }
 
 /* 发电资源分析内容 */
 .resource-item {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .resource-bar {
-  height: 8px;
+  height: 6px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  margin-bottom: 5px;
+  border-radius: 3px;
+  margin-bottom: 4px;
   overflow: hidden;
 }
 
 .resource-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: 3px;
   transition: width 0.3s ease;
 }
 
 .resource-info {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -1180,13 +1438,13 @@ onUnmounted(() => {
 .station-stats {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 
 .station-item {
-  padding: 10px;
+  padding: 8px 10px;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.3s ease;
 }
@@ -1197,9 +1455,9 @@ onUnmounted(() => {
 }
 
 .station-label {
-  font-size: 14px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   display: block;
 }
 
@@ -1210,7 +1468,7 @@ onUnmounted(() => {
 }
 
 .stat-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   color: rgba(255, 255, 255, 0.9);
 }
@@ -1221,17 +1479,17 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  width: 93%;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.15);
+  width: 100%;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 #map {
   width: 100%;
-  height: 600px;
+  height: 700px;
   margin-top: 10px;
   border-radius: 8px;
   overflow: hidden;
@@ -1355,47 +1613,48 @@ onUnmounted(() => {
 .charts-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: 15px;
 }
 
 .chart-card {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  padding: 20px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 15px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .chart-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .chart-header h3 {
-  font-size: 16px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
 }
 
 .chart-tabs {
   display: flex;
-  gap: 5px;
+  gap: 4px;
 }
 
 .tab-btn {
-  padding: 5px 12px;
-  font-size: 12px;
+  padding: 4px 10px;
+  font-size: 11px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  border-radius: 3px;
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1413,22 +1672,22 @@ onUnmounted(() => {
 
 .chart-container {
   width: 100%;
-  height: 220px;
+  height: 200px;
   position: relative;
 }
 
 /* 地图内部图表样式 */
 #map .chart-container {
   background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 10px;
+  padding: 8px;
 }
 
 /* 图表标签样式 */
 .chart-label {
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
@@ -1436,9 +1695,9 @@ onUnmounted(() => {
 /* 地图内部图表标题 */
 #map .chart-title {
   color: #4facfe;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   text-align: center;
 }
 
@@ -1468,7 +1727,7 @@ onUnmounted(() => {
 
 .forecast-table th,
 .forecast-table td {
-  padding: 10px;
+  padding: 8px;
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -1477,11 +1736,13 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
+  font-size: 13px;
 }
 
 .forecast-table td {
   color: rgba(255, 255, 255, 0.7);
   transition: all 0.3s ease;
+  font-size: 12px;
 }
 
 .forecast-table tr:hover td {
@@ -1491,25 +1752,26 @@ onUnmounted(() => {
 
 /* 一排图表容器 */
 .charts-row {
+  height: 300px;
   display: flex;
-  gap: 15px;
+  gap: 10px;
   width: 100%;
   overflow-x: auto;
-  padding-bottom: 10px;
-  margin-top: 20px;
+  padding-bottom: 8px;
+  margin-top: 15px;
 }
 
 /* 一排图表中的每个卡片 */
 .row-chart {
   flex: 1;
-  min-width: 280px;
+  min-width: 260px;
   display: flex;
   flex-direction: column;
 }
 
 /* 一排图表中的图表容器 */
 .row-chart-container {
-  height: 180px;
+  height: 160px;
   flex: 1;
 }
 
@@ -1518,14 +1780,14 @@ onUnmounted(() => {
   flex: 1;
   overflow-x: auto;
   overflow-y: auto;
-  max-height: 200px;
+  max-height: 180px;
 }
 
 /* 一排图表中的表格样式 */
 .row-forecast-table th,
 .row-forecast-table td {
-  padding: 6px 8px;
-  font-size: 12px;
+  padding: 5px 6px;
+  font-size: 11px;
 }
 
 .row-forecast-table th {
@@ -1534,6 +1796,66 @@ onUnmounted(() => {
 
 .row-forecast-table td {
   white-space: nowrap;
+}
+
+/* 发电数据列表样式 */
+.data-list-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.power-data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.power-data-table th,
+.power-data-table td {
+  padding: 8px 6px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+}
+
+.power-data-table th {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.power-data-table td {
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+}
+
+.power-data-table tr:hover td {
+  background: rgba(79, 172, 254, 0.1);
+  color: #4facfe;
+}
+
+.status-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.status-badge.normal {
+  background: rgba(52, 211, 153, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.status-badge.abnormal {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-badge.pending {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
 /* 自定义标记样式 */
@@ -1551,17 +1873,17 @@ onUnmounted(() => {
 
 /* 滚动条样式 */
 .charts-row::-webkit-scrollbar {
-  height: 6px;
+  height: 4px;
 }
 
 .charts-row::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 .charts-row::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 .charts-row::-webkit-scrollbar-thumb:hover {
@@ -1571,18 +1893,8 @@ onUnmounted(() => {
 /* 响应式设计 */
 @media (max-width: 1600px) {
   .center-layout {
-    grid-template-columns: 1fr minmax(400px, 550px) 1fr;
-  }
-
-  .content-area {
-    padding: 25px;
-  }
-}
-
-@media (max-width: 1400px) {
-  .center-layout {
-    grid-template-columns: 1fr minmax(350px, 500px) 1fr;
-    gap: 15px;
+    grid-template-columns: 1fr minmax(380px, 520px) 1fr;
+    gap: 12px;
   }
 
   .content-area {
@@ -1590,14 +1902,25 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .center-layout {
-    grid-template-columns: 1fr;
-    gap: 20px;
+    grid-template-columns: 1fr minmax(350px, 480px) 1fr;
+    gap: 12px;
   }
 
   .content-area {
-    padding: 20px 15px;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .center-layout {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .content-area {
+    padding: 15px 12px;
   }
 
   .map-card {
@@ -1612,6 +1935,7 @@ onUnmounted(() => {
   .stats-grid {
     flex-direction: row;
     justify-content: space-between;
+    gap: 12px;
   }
 
   .charts-grid {
@@ -1643,17 +1967,36 @@ onUnmounted(() => {
 
   .layer-switch-container {
     margin-left: 0;
-    margin-top: 10px;
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .top-cards-container {
+    flex-direction: column;
+  }
+
+  .forecast-card {
+    width: 100%;
+    text-align: center;
+  }
+
+  .forecast-value {
+    justify-content: center;
+  }
+
+  .forecast-details {
+    justify-content: center;
   }
 }
 
 @media (max-width: 768px) {
   .forecast-card {
-    padding: 20px;
+    padding: 15px;
   }
 
   .content-area {
-    padding: 15px 10px;
+    padding: 12px 8px;
   }
 
   #map {
@@ -1665,18 +2008,19 @@ onUnmounted(() => {
   }
 
   .value {
-    font-size: 36px;
+    font-size: 32px;
   }
 
   .forecast-details {
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    align-items: center;
   }
 }
 
 @media (max-width: 480px) {
   .content-area {
-    padding: 10px 8px;
+    padding: 10px 6px;
   }
 
   #map {
@@ -1684,12 +2028,12 @@ onUnmounted(() => {
   }
 
   .chart-card {
-    padding: 15px;
+    padding: 12px;
   }
 
   .energy-type-btn {
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: 5px 10px;
+    font-size: 11px;
   }
 }
 </style>
