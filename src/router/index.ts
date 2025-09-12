@@ -90,6 +90,12 @@ const routes: RouteRecordRaw[] = [
         name: 'complementaryScheduling',
         component: () => import('../views/DispatchPlan/ComplementaryScheduling.vue'),
       },
+      // Demo页面路由
+      {
+        path: '/demo',
+        name: 'demo',
+        component: () => import('../views/Demo/index.vue'),
+      },
     ],
   },
   {

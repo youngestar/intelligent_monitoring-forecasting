@@ -13,6 +13,10 @@ import SatelliteMap from './SatelliteMap.vue'
 .home-map-container {
   width: 100%;
   min-height: 100vh;
+  background-image: url('@/assets/mainbg2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;

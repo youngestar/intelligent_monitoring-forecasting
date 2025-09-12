@@ -113,6 +113,14 @@ const logout = () => {
             <el-menu-item index="complementaryAnalysis">互补分析</el-menu-item>
             <el-menu-item index="complementaryScheduling">互补调度</el-menu-item>
           </el-sub-menu>
+          
+          <!-- Demo页面 -->
+          <el-menu-item index="demo" class="main-menu-item">
+            <el-icon>
+              <Document />
+            </el-icon>
+            <span>Demo页面</span>
+          </el-menu-item>
         </el-menu>
       </aside>
 
